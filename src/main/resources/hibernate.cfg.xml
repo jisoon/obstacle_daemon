@@ -9,8 +9,7 @@
         <property name="hibernate.connection.url">jdbc:oracle:thin:@106.248.228.114:1521:neonex</property>
         <property name="hibernate.connection.username">tcuser</property>
         <property name="hibernate.connection.password">tcpass</property>
-        <property name="hibernate.hbm2ddl.auto">update</property>
         <property name="show_sql">true</property>
-        <mapping class="com.neonex.Account"/>
+        <mapping class="com.neonex.dto.Account"/>
     </session-factory>
 </hibernate-configuration>

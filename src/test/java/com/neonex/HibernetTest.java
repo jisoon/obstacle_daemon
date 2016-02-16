@@ -1,5 +1,6 @@
 package com.neonex;
 
+import com.neonex.dto.Account;
 import junit.framework.TestCase;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -36,9 +37,7 @@ public class HibernetTest extends TestCase{
     }
 
     private SessionFactory getSessionFactory() {
-        Configuration configuration = new Configuration().configure();
-        StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder().applySettings(configuration.getProperties());
-        SessionFactory sessionFactory = configuration.buildSessionFactory(builder.build());
-        return sessionFactory;
+
+        return new Configuration().configure().buildSessionFactory();
     }
 }
