@@ -9,7 +9,7 @@ import akka.actor.Props;
  * @packageName : org.study
  * @since : 2016-02-16
  */
-public class Main {
+public class StudyMain {
 
     public static void main(String[] ar) {
         ActorSystem actorSystem = ActorSystem.create("TestActorSystem");
