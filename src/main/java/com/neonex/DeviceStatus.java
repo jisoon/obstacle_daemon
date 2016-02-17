@@ -23,6 +23,7 @@ public class DeviceStatus extends UntypedActor{
     }
 
     public boolean fetchDeviceStatus(){
+
         return true;
     }
 }
