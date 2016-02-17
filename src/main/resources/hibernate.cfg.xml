@@ -10,6 +10,10 @@
         <property name="hibernate.connection.username">tcuser</property>
         <property name="hibernate.connection.password">tcpass</property>
         <property name="show_sql">true</property>
-        <mapping class="com.neonex.dto.Account"/>
+        <!--
+        <mapping  package="com.neonex.dto"/>
+        -->
+        <mapping  class="com.neonex.dto.DeviceStatus"/>
+        <mapping  class="com.neonex.dto.Account"/>
     </session-factory>
 </hibernate-configuration>

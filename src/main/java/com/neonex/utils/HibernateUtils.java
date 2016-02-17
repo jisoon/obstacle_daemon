@@ -13,7 +13,6 @@ public class HibernateUtils {
     static SessionFactory sessionFactory;
 
     static {
-        System.out.println(">>>>>>>>>>> SessionFactory InInitializer");
         try {
             sessionFactory = new Configuration().configure().buildSessionFactory();
         } catch (java.lang.ExceptionInInitializerError e) {
@@ -24,4 +23,6 @@ public class HibernateUtils {
     public static SessionFactory getSessionFactory() {
         return sessionFactory;
     }
+
+
 }

@@ -11,6 +11,7 @@ import javax.persistence.Table;
  * @packageName : com.neonex
  * @since : 2016-02-16
  */
+@SuppressWarnings("JpaDataSourceORMInspection")
 @Entity
 @Table(name = "ACCOUNT")
 public class Account {

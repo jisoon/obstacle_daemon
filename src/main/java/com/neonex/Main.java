@@ -13,7 +13,7 @@ import com.neonex.message.StartMsg;
 public class Main {
     public static void main(String[] ar) {
         ActorSystem actorSystem = ActorSystem.create("obstacle_daemon");
-        ActorRef daemon = actorSystem.actorOf(Props.create(DeviceStatus.class), "deviceStatus");
+        ActorRef daemon = actorSystem.actorOf(Props.create(DeviceActor.class), "deviceStatus");
         daemon.tell(new StartMsg(), ActorRef.noSender());
     }
 
