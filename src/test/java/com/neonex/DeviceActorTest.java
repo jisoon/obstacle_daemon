@@ -14,6 +14,8 @@ import org.hibernate.SessionFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -30,10 +32,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class DeviceActorTest extends TestCase {
 
+    private final static Logger logger = LoggerFactory.getLogger(DeviceActorTest.class);
+
     ActorSystem system;
     Props props;
     DeviceActor deviceActor;
-    TestActorRef<DeviceActor> ref;
+    TestActorRef<DeviceActor> testDeviceActor;
     Session session;
     SessionFactory sessionFactory;
 
@@ -43,8 +47,8 @@ public class DeviceActorTest extends TestCase {
         sessionFactory = HibernateUtils.getSessionFactory();
         system = ActorSystem.create();
         props = Props.create(DeviceActor.class, HibernateUtils.getSessionFactory());
-        ref = TestActorRef.create(system, props, "DeviceActorTest");
-        deviceActor = ref.underlyingActor();
+        testDeviceActor = TestActorRef.create(system, props, "DeviceActorTest");
+        deviceActor = testDeviceActor.underlyingActor();
         session = sessionFactory.openSession();
     }
 
@@ -61,16 +65,16 @@ public class DeviceActorTest extends TestCase {
         DeviceStatus testDevice = initTestDeviceDisconnected();
 
         // when
-        final Props props = Props.create(DeviceActor.class);
-        final TestActorRef<DeviceActor> ref = TestActorRef.create(system, props, "testDeviceStatus");
-        ref.tell(new StartMsg(), ActorRef.noSender());
+        // akka actor 를 이용해서 로직 실행
+        final Props props = Props.create(DeviceActor.class, sessionFactory);
+        final TestActorRef<DeviceActor> testRef = TestActorRef.create(system, props, "testDeviceStatus");
+        testRef.tell(new StartMsg(), ActorRef.noSender());
 
         // then
         DeviceStatus device = deviceActor.findDevice(testDevice.getEqId());
         assertThat(device.getConnectYn(), is("N"));
 
     }
-
 
     @Test
     public void testFetchDeviceStatus() throws Exception {
@@ -88,7 +92,6 @@ public class DeviceActorTest extends TestCase {
 
     @Test
     public void testDetectDisconnect() throws Exception {
-
         // given
         // 테스트 장비의 마지막 연결 시간을 임계치 보다 이전의 시간으로 세팅
         DeviceStatus testDevice = initTestDeviceDisconnected();
@@ -103,19 +106,59 @@ public class DeviceActorTest extends TestCase {
         assertThat(disconnectCount, is(not(0)));
         DeviceStatus disConnectedDevice = deviceActor.findDevice(testDevice.getEqId());
         assertThat(disConnectedDevice.getConnectYn(), is("N"));
+    }
 
+    @Test
+    public void testUpdateStatusDisconnect() throws Exception {
+        // given
+        DeviceStatus testDevice = initTestDeviceDisconnected();
 
+        // when
+        Session session = sessionFactory.openSession();
+        session.getTransaction().begin();
+        deviceActor.updateStatusDisconnect(session, testDevice);
+        session.getTransaction().commit();
+        session.close();
+
+        // then
+        DeviceStatus deviceStatus = deviceActor.findDevice(testDevice.getEqId());
+        assertThat(deviceStatus.getConnectYn(), is("N"));
+
+    }
+
+    @Test
+    public void testInsertDisconnectEvent() throws Exception {
+        // given
+        DeviceStatus testDevice = getTestDeviceInfo();
+
+        // when
+        Session session = HibernateUtils.getSessionFactory().openSession();
+        session.getTransaction().begin();
+        boolean isInserted = deviceActor.insertDisconnectEvent(session, testDevice.getEqId());
+        if (!isInserted) {
+            session.getTransaction().rollback();
+            session.close();
+            fail();
+        }else{
+            session.getTransaction().commit();
+            session.close();
+            assertTrue(true);
+        }
     }
 
     private DeviceStatus initTestDeviceDisconnected() {
         session.getTransaction().begin();
-        DeviceStatus testDevice = new DeviceStatus();
-        testDevice.setEqId("1");
-        testDevice.setLastCommTime("20000217164226");
-        testDevice.setConnectYn("Y");
+        DeviceStatus testDevice = getTestDeviceInfo();
         session.update(testDevice);
         session.getTransaction().commit();
         return testDevice;
     }
 
+    private DeviceStatus getTestDeviceInfo() {
+        DeviceStatus testDevice = new DeviceStatus();
+        testDevice.setEqId("1");
+        testDevice.setLastCommTime("20000217164226");
+        testDevice.setConnectYn("Y");
+        return testDevice;
+    }
 }

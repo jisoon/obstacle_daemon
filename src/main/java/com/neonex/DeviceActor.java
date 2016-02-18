@@ -2,15 +2,20 @@ package com.neonex;
 
 import akka.actor.UntypedActor;
 import com.neonex.dto.DeviceStatus;
+import com.neonex.dto.EventLog;
 import com.neonex.message.StartMsg;
-import com.neonex.utils.HibernateUtils;
+import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.criterion.Restrictions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * @author : 지순
@@ -25,10 +30,13 @@ public class DeviceActor extends UntypedActor {
     private SessionFactory sessionFactory;
 
 
+    // argment constructor 를 사용할때 반드시 기본 constructor 도 필요하다.
     public DeviceActor() {
-        sessionFactory = HibernateUtils.getSessionFactory();
+        logger.info("default construnctor");
     }
+
     public DeviceActor(SessionFactory sessionFactory) {
+        logger.info("SessionFactory construnctor");
         this.sessionFactory = sessionFactory;
     }
 
@@ -59,7 +67,7 @@ public class DeviceActor extends UntypedActor {
         return deviceStatus;
     }
 
-    public int detectDisconnect(List<DeviceStatus> devices) {
+    int detectDisconnect(List<DeviceStatus> devices) {
         logger.info("=== detectDisconnect === ");
         Session session = sessionFactory.openSession();
         session.getTransaction().begin();
@@ -70,20 +78,18 @@ public class DeviceActor extends UntypedActor {
                     long dbLastCommTime = Long.parseLong(device.getLastCommTime());
                     long thresholdLastCommTime = Long.parseLong("20160217164225");
                     if (dbLastCommTime < thresholdLastCommTime) {
-                        logger.info("disconnec target device  > {} lastCommTime > {}", device.getEqId(), dbLastCommTime);
-                        DeviceStatus disconnectDevice = new DeviceStatus();
-                        disconnectDevice.setConnectYn("N");
-                        disconnectDevice.setEqId(device.getEqId());
-                        disconnectDevice.setLastCommTime(device.getLastCommTime());
-                        session.update(disconnectDevice);
+                        logger.info("disconnec target device : {} lastCommTime : {}", device.getEqId(), dbLastCommTime);
+
+                        updateStatusDisconnect(session, device);
+
+                        insertDisconnectEvent(session, device.getEqId());
+
                         disconnectCount++;
                     }
                 }
             }
         } catch (NumberFormatException ne) {
-            logger.info("NumberFormatException ");
-            ne.printStackTrace();
-            //skip
+            session.getTransaction().rollback();
         } catch (Exception e) {
             logger.info("Exception ");
             e.printStackTrace();
@@ -93,10 +99,52 @@ public class DeviceActor extends UntypedActor {
         return disconnectCount;
     }
 
-    public DeviceStatus findDevice(String eqId) {
+    DeviceStatus findDevice(String eqId) {
         Session session = sessionFactory.openSession();
         DeviceStatus device = session.get(DeviceStatus.class, eqId);
         session.close();
         return device;
+    }
+
+    boolean
+    insertDisconnectEvent(Session session, String eqId) {
+        logger.info("=== insertDisconnectEvent ===");
+        EventLog eventLog = new EventLog();
+        eventLog.setEqId(eqId);
+        eventLog.setEventCont("미연결");
+        eventLog.setEventLv(1);
+        eventLog.setProcessVn("N");
+        eventLog.setOccurDate(currentTime());
+        eventLog.setEventSeq(getEventSeq(session));
+        logger.info(eventLog.toString());
+
+
+        try {
+            session.save(eventLog);
+            return true;
+        } catch (Exception e) {
+            logger.error("insert disconnect device error", e);
+            return false;
+        }
+
+    }
+
+    private Long getEventSeq(Session session) {
+        Query query = session.createSQLQuery("select SQNT_EQ_EVENT_LOG_SEQ.nextval from dual");
+        return ((BigDecimal) query.uniqueResult()).longValue();
+    }
+
+    void updateStatusDisconnect(Session session, DeviceStatus device) {
+        logger.info("=== updateStatusDisconnect ===");
+        DeviceStatus disconnectDevice = new DeviceStatus();
+        disconnectDevice.setConnectYn("N");
+        disconnectDevice.setEqId(device.getEqId());
+        disconnectDevice.setLastCommTime(device.getLastCommTime());
+        session.update(disconnectDevice);
+    }
+
+    private String currentTime() {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA);
+        return formatter.format(new Date());
     }
 }

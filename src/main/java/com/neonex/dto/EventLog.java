@@ -1,18 +1,17 @@
 package com.neonex.dto;
 
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 /**
  * @author : 지순
  * @packageName : com.neonex.dto
  * @since : 2016-02-18
  */
+@SuppressWarnings("JpaDataSourceORMInspection")
 @Entity
 @Table(name="EQ_EVENT_LOG")
+@SequenceGenerator(name="eventLogSeqGenerator", sequenceName="SQNT_EQ_EVENT_LOG_SEQ")
 public class EventLog {
     @Id
     @Column(name="EVENT_SEQ")

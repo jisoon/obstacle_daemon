@@ -17,6 +17,7 @@
         <mapping  package="com.neonex.dto"/>
         -->
         <mapping  class="com.neonex.dto.DeviceStatus"/>
+        <mapping  class="com.neonex.dto.EventLog"/>
         <mapping  class="com.neonex.dto.Account"/>
     </session-factory>
 </hibernate-configuration>
