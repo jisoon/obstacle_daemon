@@ -9,7 +9,10 @@
         <property name="hibernate.connection.url">jdbc:oracle:thin:@192.168.1.114:1521/neonex</property>
         <property name="hibernate.connection.username">tcuser</property>
         <property name="hibernate.connection.password">tcpass</property>
-        <property name="show_sql">true</property>
+        <!-- hibernate 자체 SQL 출력을 못하도록 -->
+        <property name="show_sql">false</property>
+        <!-- 이쁘게 보이게 -->
+        <property name="format_sql">true</property>
         <!--
         <mapping  package="com.neonex.dto"/>
         -->

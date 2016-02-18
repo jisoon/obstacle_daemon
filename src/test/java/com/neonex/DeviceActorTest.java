@@ -1,13 +1,16 @@
 package com.neonex;
 
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
 import com.neonex.dto.DeviceStatus;
+import com.neonex.message.StartMsg;
 import com.neonex.utils.HibernateUtils;
 import junit.framework.TestCase;
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,15 +35,17 @@ public class DeviceActorTest extends TestCase {
     DeviceActor deviceActor;
     TestActorRef<DeviceActor> ref;
     Session session;
+    SessionFactory sessionFactory;
 
 
     @Before
     public void setUp() throws Exception {
+        sessionFactory = HibernateUtils.getSessionFactory();
         system = ActorSystem.create();
-        props = Props.create(DeviceActor.class);
+        props = Props.create(DeviceActor.class, HibernateUtils.getSessionFactory());
         ref = TestActorRef.create(system, props, "DeviceActorTest");
         deviceActor = ref.underlyingActor();
-        session = HibernateUtils.getSessionFactory().openSession();
+        session = sessionFactory.openSession();
     }
 
     @After
@@ -51,44 +56,66 @@ public class DeviceActorTest extends TestCase {
     }
 
     @Test
+    public void testOnReceive() throws Exception {
+        // given
+        DeviceStatus testDevice = initTestDeviceDisconnected();
+
+        // when
+        final Props props = Props.create(DeviceActor.class);
+        final TestActorRef<DeviceActor> ref = TestActorRef.create(system, props, "testDeviceStatus");
+        ref.tell(new StartMsg(), ActorRef.noSender());
+
+        // then
+        DeviceStatus device = deviceActor.findDevice(testDevice.getEqId());
+        assertThat(device.getConnectYn(), is("N"));
+
+    }
+
+
+    @Test
     public void testFetchDeviceStatus() throws Exception {
 
         //given
-        List<DeviceStatus> status = deviceActor.fetchDevice(session);
+        List<DeviceStatus> status = deviceActor.fetchDevice();
 
         //then
         for (DeviceStatus device : status) {
-            if(device.getConnectYn().equals("N")){
+            if (device.getConnectYn().equals("N")) {
                 fail();
             }
         }
     }
-    
+
     @Test
     public void testDetectDisconnect() throws Exception {
 
-        session.getTransaction().begin();
         // given
-        DeviceStatus disConnectDevice = new DeviceStatus();
-        disConnectDevice.setEqId("1");
-        disConnectDevice.setLastCommTime("20000217164226");
-        disConnectDevice.setConnectYn("Y");
-        session.update(disConnectDevice);
+        // 테스트 장비의 마지막 연결 시간을 임계치 보다 이전의 시간으로 세팅
+        DeviceStatus testDevice = initTestDeviceDisconnected();
 
-        try {
-            List<DeviceStatus> devices = deviceActor.fetchDevice(session);
+        List<DeviceStatus> devices = deviceActor.fetchDevice();
 
-            // when
-            int disconnectCount = deviceActor.detectDisconnect(session, devices);
-            disConnectDevice = session.get(DeviceStatus.class, "1");
+        // when
+        int disconnectCount = deviceActor.detectDisconnect(devices);
+        testDevice = session.get(DeviceStatus.class, "1");
 
-            // then
-            assertThat(disconnectCount, is(not(0)));
-            assertThat(disConnectDevice.getConnectYn(), is("N"));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        session.getTransaction().rollback();
+        // then
+        assertThat(disconnectCount, is(not(0)));
+        DeviceStatus disConnectedDevice = deviceActor.findDevice(testDevice.getEqId());
+        assertThat(disConnectedDevice.getConnectYn(), is("N"));
+
+
+    }
+
+    private DeviceStatus initTestDeviceDisconnected() {
+        session.getTransaction().begin();
+        DeviceStatus testDevice = new DeviceStatus();
+        testDevice.setEqId("1");
+        testDevice.setLastCommTime("20000217164226");
+        testDevice.setConnectYn("Y");
+        session.update(testDevice);
+        session.getTransaction().commit();
+        return testDevice;
     }
 
 }
