@@ -5,7 +5,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
-import com.neonex.dto.DeviceStatus;
+import com.neonex.dto.EqStatus;
 import com.neonex.message.StartMsg;
 import com.neonex.utils.HibernateUtils;
 import junit.framework.TestCase;
@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -62,7 +63,7 @@ public class DeviceActorTest extends TestCase {
     @Test
     public void testOnReceive() throws Exception {
         // given
-        DeviceStatus testDevice = initTestDeviceDisconnected();
+        EqStatus testDevice = initTestDeviceDisconnected();
 
         // when
         // akka actor 를 이용해서 로직 실행
@@ -71,7 +72,7 @@ public class DeviceActorTest extends TestCase {
         testRef.tell(new StartMsg(), ActorRef.noSender());
 
         // then
-        DeviceStatus device = deviceActor.findDevice(testDevice.getEqId());
+        EqStatus device = deviceActor.findDevice(testDevice.getEqId());
         assertThat(device.getConnectYn(), is("N"));
 
     }
@@ -80,13 +81,21 @@ public class DeviceActorTest extends TestCase {
     public void testFetchDeviceStatus() throws Exception {
 
         //given
-        List<DeviceStatus> status = deviceActor.fetchDevice();
+        List<EqStatus> status = deviceActor.fetchDevice();
 
         //then
-        for (DeviceStatus device : status) {
+        for (EqStatus device : status) {
             if (device.getConnectYn().equals("N")) {
                 fail();
             }
+            if (device.getEqInfo().getEqModel().getModelCode() == null) {
+                fail();
+            } else {
+                logger.info("eq modelCode {}", device.getEqInfo().getEqId());
+                logger.info("eq modelCode {}", device.getEqInfo().getEqModel().getModelCode());
+            }
+
+
         }
     }
 
@@ -94,24 +103,24 @@ public class DeviceActorTest extends TestCase {
     public void testDetectDisconnect() throws Exception {
         // given
         // 테스트 장비의 마지막 연결 시간을 임계치 보다 이전의 시간으로 세팅
-        DeviceStatus testDevice = initTestDeviceDisconnected();
+        EqStatus testDevice = initTestDeviceDisconnected();
 
-        List<DeviceStatus> devices = deviceActor.fetchDevice();
+        List<EqStatus> devices = deviceActor.fetchDevice();
 
         // when
         int disconnectCount = deviceActor.detectDisconnect(devices);
-        testDevice = session.get(DeviceStatus.class, "1");
+        testDevice = session.get(EqStatus.class, "1");
 
         // then
         assertThat(disconnectCount, is(not(0)));
-        DeviceStatus disConnectedDevice = deviceActor.findDevice(testDevice.getEqId());
+        EqStatus disConnectedDevice = deviceActor.findDevice(testDevice.getEqId());
         assertThat(disConnectedDevice.getConnectYn(), is("N"));
     }
 
     @Test
     public void testUpdateStatusDisconnect() throws Exception {
         // given
-        DeviceStatus testDevice = initTestDeviceDisconnected();
+        EqStatus testDevice = initTestDeviceDisconnected();
 
         // when
         Session session = sessionFactory.openSession();
@@ -121,15 +130,15 @@ public class DeviceActorTest extends TestCase {
         session.close();
 
         // then
-        DeviceStatus deviceStatus = deviceActor.findDevice(testDevice.getEqId());
-        assertThat(deviceStatus.getConnectYn(), is("N"));
+        EqStatus eqStatus = deviceActor.findDevice(testDevice.getEqId());
+        assertThat(eqStatus.getConnectYn(), is("N"));
 
     }
 
     @Test
     public void testInsertDisconnectEvent() throws Exception {
         // given
-        DeviceStatus testDevice = getTestDeviceInfo();
+        EqStatus testDevice = getTestDeviceInfo();
 
         // when
         Session session = HibernateUtils.getSessionFactory().openSession();
@@ -146,16 +155,29 @@ public class DeviceActorTest extends TestCase {
         }
     }
 
-    private DeviceStatus initTestDeviceDisconnected() {
+    @Test
+    public void testCompModelThresHold() throws Exception {
+        // given
+
+
+        // when
+        Map<String, Object> thresHold = deviceActor.fetchConnetionThresHold();
+
+        // then
+        assertThat(thresHold.containsKey("MXR-410K"), is(true));
+
+    }
+
+    private EqStatus initTestDeviceDisconnected() {
         session.getTransaction().begin();
-        DeviceStatus testDevice = getTestDeviceInfo();
+        EqStatus testDevice = getTestDeviceInfo();
         session.update(testDevice);
         session.getTransaction().commit();
         return testDevice;
     }
 
-    private DeviceStatus getTestDeviceInfo() {
-        DeviceStatus testDevice = new DeviceStatus();
+    private EqStatus getTestDeviceInfo() {
+        EqStatus testDevice = new EqStatus();
         testDevice.setEqId("1");
         testDevice.setLastCommTime("20000217164226");
         testDevice.setConnectYn("Y");

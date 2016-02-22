@@ -1,9 +1,6 @@
 package com.neonex.dto;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 /**
  * @author : 지순
@@ -12,18 +9,22 @@ import javax.persistence.Table;
  */
 @SuppressWarnings("JpaDataSourceORMInspection")
 @Entity
-@Table(name="EQ_STATUS_INFO")
-public class DeviceStatus{
+@Table(name = "EQ_STATUS_INFO")
+public class EqStatus {
 
     @Id
-    @Column(name="EQ_ID")
+    @Column(name = "EQ_ID")
     private String eqId;
 
-    @Column(name="LAST_COMM_TIME")
+    @Column(name = "LAST_COMM_TIME")
     private String lastCommTime;
 
-    @Column(name="CONNECT_YN")
+    @Column(name = "CONNECT_YN")
     private String connectYn;
+
+    @OneToOne
+    @JoinColumn(name = "EQ_ID")
+    private EqInfo eqInfo;
 
     public String getEqId() {
         return eqId;
@@ -49,12 +50,11 @@ public class DeviceStatus{
         this.connectYn = connectYn;
     }
 
-    @Override
-    public String toString() {
-        return "DeviceStatus{" +
-                "eqId='" + eqId + '\'' +
-                ", lastCommTime='" + lastCommTime + '\'' +
-                ", connectYn='" + connectYn + '\'' +
-                '}';
+    public EqInfo getEqInfo() {
+        return eqInfo;
+    }
+
+    public void setEqInfo(EqInfo eqInfo) {
+        this.eqInfo = eqInfo;
     }
 }

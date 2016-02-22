@@ -1,9 +1,11 @@
 package com.neonex;
 
 import akka.actor.UntypedActor;
-import com.neonex.dto.DeviceStatus;
+import com.neonex.dto.CompModelEvent;
+import com.neonex.dto.EqStatus;
 import com.neonex.dto.EventLog;
 import com.neonex.message.StartMsg;
+import com.neonex.utils.HibernateUtils;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -13,9 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 /**
  * @author : 지순
@@ -30,6 +30,7 @@ public class DeviceActor extends UntypedActor {
     private SessionFactory sessionFactory;
 
 
+    // !!!!!!!! 주의 !!!!!!!!!!!!!
     // argment constructor 를 사용할때 반드시 기본 constructor 도 필요하다.
     public DeviceActor() {
         logger.info("default construnctor");
@@ -44,7 +45,7 @@ public class DeviceActor extends UntypedActor {
     public void onReceive(Object message) throws Exception {
         if (message instanceof StartMsg) {
             logger.info("=== message received!!! ===");
-            List<DeviceStatus> devices = fetchDevice();
+            List<EqStatus> devices = fetchDevice();
             int disconnecCount = detectDisconnect(devices);
             logger.info("disconnect count {}", disconnecCount);
         } else {
@@ -57,34 +58,55 @@ public class DeviceActor extends UntypedActor {
      *
      * @return
      */
-    public List<DeviceStatus> fetchDevice() {
+    public List<EqStatus> fetchDevice() {
         logger.info("=== fetchDevice ===");
         Session session = sessionFactory.openSession();
-        List<DeviceStatus> deviceStatus = session.createCriteria(DeviceStatus.class)
+        List<EqStatus> eqStatus = session.createCriteria(EqStatus.class)
                 .add(Restrictions.eq("connectYn", "Y"))
                 .list();
         session.close();
-        return deviceStatus;
+        return eqStatus;
     }
 
-    int detectDisconnect(List<DeviceStatus> devices) {
+    /**
+     * 미연결 장애 감지
+     *
+     * @param devices
+     * @return
+     */
+    public int detectDisconnect(List<EqStatus> devices) {
         logger.info("=== detectDisconnect === ");
+
+        // 미연결 임계치 조회
+        // 장비의 모델 코드로 미연결 임계치 정보를 조회 할 수 있음
+        Map<String, Object> thresHold = fetchConnetionThresHold();
+
         Session session = sessionFactory.openSession();
         session.getTransaction().begin();
         int disconnectCount = 0;
         try {
-            for (DeviceStatus device : devices) {
+            for (EqStatus device : devices) {
+                String deviceModelCode = device.getEqInfo().getEqModel().getModelCode();
                 if (device.getLastCommTime() != null) {
-                    long dbLastCommTime = Long.parseLong(device.getLastCommTime());
-                    long thresholdLastCommTime = Long.parseLong("20160217164225");
-                    if (dbLastCommTime < thresholdLastCommTime) {
-                        logger.info("disconnec target device : {} lastCommTime : {}", device.getEqId(), dbLastCommTime);
+                    if (thresHold.containsKey(deviceModelCode)) {
+                        // 장비 모델 코드로 미연결 인터벌 값을 조회
+                        int connectionInterval = (Integer) thresHold.get(device.getEqInfo().getEqModel().getModelCode());
 
-                        updateStatusDisconnect(session, device);
+                        long dbLastCommTime = Long.parseLong(device.getLastCommTime());
+                        long thresholdLastCommTime = calcConnectionThresHoldTime(connectionInterval);
+                        logger.info("thresholdLastCommTime {} ", thresholdLastCommTime);
+                        logger.info("dbLastCommTime {} ", dbLastCommTime);
 
-                        insertDisconnectEvent(session, device.getEqId());
+                        // DB 시간과 임계치 시간 비교
+                        if (dbLastCommTime < thresholdLastCommTime) {
+                            logger.info("disconnec target device : {} lastCommTime : {}", device.getEqId(), dbLastCommTime);
 
-                        disconnectCount++;
+                            updateStatusDisconnect(session, device);
+
+                            insertDisconnectEvent(session, device.getEqId());
+
+                            disconnectCount++;
+                        }
                     }
                 }
             }
@@ -99,15 +121,43 @@ public class DeviceActor extends UntypedActor {
         return disconnectCount;
     }
 
-    DeviceStatus findDevice(String eqId) {
+    /**
+     * 연결 임계치 조회
+     * 장비의 모델 코드로 연결 임계치를 조회 할 수 있도록 Map 으로 구성
+     *
+     * @return map
+     */
+    public Map<String, Object> fetchConnetionThresHold() {
+        Session session = HibernateUtils.getSessionFactory().openSession();
+        List<CompModelEvent> thresholdList = session.createCriteria(CompModelEvent.class)
+                .add(Restrictions.eq("eventCode", "CON0002"))
+                .list();
+        Map<String, Object> threshold = new HashMap<String, Object>();
+        for (CompModelEvent event : thresholdList) {
+            threshold.put(event.getModelCode(), event.getMaxValue());
+        }
+        session.close();
+        return threshold;
+
+    }
+
+    public EqStatus findDevice(String eqId) {
         Session session = sessionFactory.openSession();
-        DeviceStatus device = session.get(DeviceStatus.class, eqId);
+        EqStatus device = session.get(EqStatus.class, eqId);
         session.close();
         return device;
     }
 
-    boolean
-    insertDisconnectEvent(Session session, String eqId) {
+    public void updateStatusDisconnect(Session session, EqStatus device) {
+        logger.info("=== updateStatusDisconnect ===");
+        EqStatus disconnectDevice = new EqStatus();
+        disconnectDevice.setConnectYn("N");
+        disconnectDevice.setEqId(device.getEqId());
+        disconnectDevice.setLastCommTime(device.getLastCommTime());
+        session.update(disconnectDevice);
+    }
+
+    public boolean insertDisconnectEvent(Session session, String eqId) {
         logger.info("=== insertDisconnectEvent ===");
         EventLog eventLog = new EventLog();
         eventLog.setEqId(eqId);
@@ -116,9 +166,6 @@ public class DeviceActor extends UntypedActor {
         eventLog.setProcessVn("N");
         eventLog.setOccurDate(currentTime());
         eventLog.setEventSeq(getEventSeq(session));
-        logger.info(eventLog.toString());
-
-
         try {
             session.save(eventLog);
             return true;
@@ -134,17 +181,18 @@ public class DeviceActor extends UntypedActor {
         return ((BigDecimal) query.uniqueResult()).longValue();
     }
 
-    void updateStatusDisconnect(Session session, DeviceStatus device) {
-        logger.info("=== updateStatusDisconnect ===");
-        DeviceStatus disconnectDevice = new DeviceStatus();
-        disconnectDevice.setConnectYn("N");
-        disconnectDevice.setEqId(device.getEqId());
-        disconnectDevice.setLastCommTime(device.getLastCommTime());
-        session.update(disconnectDevice);
-    }
-
     private String currentTime() {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA);
         return formatter.format(new Date());
+    }
+
+    private Long calcConnectionThresHoldTime(int thresHoldTime) {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA);
+
+        Date date = new Date();
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.add(Calendar.SECOND, (int) ((-1) * thresHoldTime));
+        return Long.parseLong(formatter.format(cal.getTime()));
     }
 }
