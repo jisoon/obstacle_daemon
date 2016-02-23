@@ -1,15 +1,18 @@
 package com.neonex;
 
+import akka.actor.ActorRef;
+import akka.actor.Props;
 import akka.actor.UntypedActor;
 import com.neonex.dto.CompModelEvent;
 import com.neonex.dto.EqStatus;
 import com.neonex.dto.EventLog;
 import com.neonex.message.StartMsg;
 import com.neonex.utils.HibernateUtils;
+import com.neonex.watchers.CpuWatcher;
+import com.neonex.watchers.MemWatcher;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.Query;
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.hibernate.criterion.Restrictions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,18 +31,14 @@ public class DeviceActor extends UntypedActor {
 
     private final static Logger logger = LoggerFactory.getLogger(DeviceActor.class);
 
-    private SessionFactory sessionFactory;
+    private ActorRef cpuWatcher;
 
+    private ActorRef memWatcher;
 
-    // !!!!!!!! 주의 !!!!!!!!!!!!!
-    // argment constructor 를 사용할때 반드시 기본 constructor 도 필요하다.
     public DeviceActor() {
         logger.info("default construnctor");
-    }
-
-    public DeviceActor(SessionFactory sessionFactory) {
-        logger.info("SessionFactory construnctor");
-        this.sessionFactory = sessionFactory;
+        cpuWatcher = context().actorOf(Props.create(CpuWatcher.class), "cpuWatcher");
+        memWatcher = context().actorOf(Props.create(MemWatcher.class), "memWatcher");
     }
 
     @Override
@@ -49,6 +48,11 @@ public class DeviceActor extends UntypedActor {
             List<EqStatus> devices = fetchDevice();
             int disconnecCount = detectDisconnect(devices);
             logger.info("disconnect count {}", disconnecCount);
+
+            ((StartMsg) message).setEqStatusList(devices);
+
+            cpuWatcher.tell(message, getSelf());
+
         } else {
             unhandled(message);
         }
@@ -61,7 +65,7 @@ public class DeviceActor extends UntypedActor {
      */
     public List<EqStatus> fetchDevice() {
         logger.info("=== fetchDevice ===");
-        Session session = sessionFactory.openSession();
+        Session session = HibernateUtils.getSessionFactory().openSession();
         List<EqStatus> eqStatus = session.createCriteria(EqStatus.class)
                 .add(Restrictions.eq("connectYn", "Y"))
                 .list();
@@ -82,7 +86,7 @@ public class DeviceActor extends UntypedActor {
         // 장비의 모델 코드로 미연결 임계치 정보를 조회 할 수 있음
         Map<String, Object> thresHold = fetchConnetionThresHold();
 
-        Session session = sessionFactory.openSession();
+        Session session = HibernateUtils.getSessionFactory().openSession();
         session.getTransaction().begin();
         int disconnectCount = 0;
         try {
@@ -120,11 +124,8 @@ public class DeviceActor extends UntypedActor {
                             insertDisconnectEvent(session, device.getEqId());
                             disconnectCount++;
                         }
-
-
                         // device list 상태를 N 으로 변경
                         device.setConnectYn("N");
-
                     }
                 }
             }
@@ -139,6 +140,12 @@ public class DeviceActor extends UntypedActor {
         return disconnectCount;
     }
 
+    /**
+     * 미연결 이벤트를 제외한 이벤트 처리 완료
+     *
+     * @param eqId
+     * @return
+     */
     public boolean initObstalceEvent(String eqId) {
         long startTime = System.currentTimeMillis();
 
@@ -177,6 +184,11 @@ public class DeviceActor extends UntypedActor {
 
     }
 
+    /**
+     * 미연결 이벤트가 존재 하는지 확인
+     * @param eqId
+     * @return
+     */
     public boolean hasNoDisconnectionEvent(String eqId) {
         Session session = HibernateUtils.getSessionFactory().openSession();
         List<EventLog> disconnEvent = session.createCriteria(EventLog.class)
@@ -205,13 +217,24 @@ public class DeviceActor extends UntypedActor {
 
     }
 
+    /**
+     * 장비 상태 조회
+     * @param eqId
+     * @return
+     */
     public EqStatus findDevice(String eqId) {
-        Session session = sessionFactory.openSession();
+        Session session = HibernateUtils.getSessionFactory().openSession();
         EqStatus device = session.get(EqStatus.class, eqId);
         session.close();
         return device;
     }
 
+    /**
+     * 장비 미연결 상태로 update
+     * transaction 때문에 session 을 파라미터로 받아 됩니다.
+     * @param session
+     * @param device
+     */
     public void updateStatusDisconnect(Session session, EqStatus device) {
         logger.info("=== updateStatusDisconnect ===");
         EqStatus disconnectDevice = new EqStatus();
@@ -221,6 +244,13 @@ public class DeviceActor extends UntypedActor {
         session.update(disconnectDevice);
     }
 
+    /**
+     * 미연결 이벤트 insert
+     * transaction 때문에 session 을 파라미터로 받아 됩니다.
+     * @param session
+     * @param eqId
+     * @return
+     */
     public boolean insertDisconnectEvent(Session session, String eqId) {
         logger.info("=== insertDisconnectEvent ===");
         EventLog eventLog = new EventLog();

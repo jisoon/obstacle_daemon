@@ -37,20 +37,26 @@ public class DeviceActorTest extends TestCase {
 
     private ActorSystem system;
     private Props props;
-    private DeviceActor deviceActor;
-    private TestActorRef<DeviceActor> testDeviceActor;
+
     private Session session;
     private SessionFactory sessionFactory;
+
+    private DeviceActor deviceActor;
+    private TestActorRef<DeviceActor> testActorRef;
 
 
     @Before
     public void setUp() throws Exception {
         sessionFactory = HibernateUtils.getSessionFactory();
-        system = ActorSystem.create();
-        props = Props.create(DeviceActor.class, HibernateUtils.getSessionFactory());
-        testDeviceActor = TestActorRef.create(system, props, "DeviceActorTest");
-        deviceActor = testDeviceActor.underlyingActor();
         session = sessionFactory.openSession();
+
+        system = ActorSystem.create();
+        props = Props.create(DeviceActor.class);
+
+        testActorRef = TestActorRef.create(system, props, "DeviceActorTest");
+        deviceActor = testActorRef.underlyingActor();
+
+
     }
 
     @After
@@ -67,7 +73,7 @@ public class DeviceActorTest extends TestCase {
 
         // when
         // akka actor 를 이용해서 로직 실행
-        final Props props = Props.create(DeviceActor.class, sessionFactory);
+        final Props props = Props.create(DeviceActor.class);
         final TestActorRef<DeviceActor> testRef = TestActorRef.create(system, props, "testDeviceStatus");
         testRef.tell(new StartMsg(), ActorRef.noSender());
 

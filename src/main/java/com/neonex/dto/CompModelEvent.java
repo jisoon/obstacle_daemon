@@ -136,4 +136,21 @@ public class CompModelEvent {
     public void setUseYn(String useYn) {
         this.useYn = useYn;
     }
+
+    @Override
+    public String toString() {
+        return "CompModelEvent{" +
+                "compModelEventSeq='" + compModelEventSeq + '\'' +
+                ", eventCode='" + eventCode + '\'' +
+                ", eventCont='" + eventCont + '\'' +
+                ", minValue=" + minValue +
+                ", maxValue=" + maxValue +
+                ", noticeMethod='" + noticeMethod + '\'' +
+                ", eventLvCode='" + eventLvCode + '\'' +
+                ", modelCode='" + modelCode + '\'' +
+                ", compCode='" + compCode + '\'' +
+                ", eventTitle='" + eventTitle + '\'' +
+                ", useYn='" + useYn + '\'' +
+                '}';
+    }
 }
