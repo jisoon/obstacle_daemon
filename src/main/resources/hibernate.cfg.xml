@@ -17,8 +17,8 @@
         <mapping  package="com.neonex.dto"/>
         -->
         <mapping class="com.neonex.dto.EqStatus"/>
-        <mapping  class="com.neonex.dto.EventLog"/>
-        <mapping  class="com.neonex.dto.Account"/>
+        <mapping class="com.neonex.dto.EventLog"/>
+        <mapping class="com.neonex.dto.Account"/>
         <mapping class="com.neonex.dto.CompModelEvent"/>
         <mapping class="com.neonex.dto.EqModel"/>
         <mapping class="com.neonex.dto.EqInfo"/>

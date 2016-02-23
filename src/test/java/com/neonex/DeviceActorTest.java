@@ -35,12 +35,12 @@ public class DeviceActorTest extends TestCase {
 
     private final static Logger logger = LoggerFactory.getLogger(DeviceActorTest.class);
 
-    ActorSystem system;
-    Props props;
-    DeviceActor deviceActor;
-    TestActorRef<DeviceActor> testDeviceActor;
-    Session session;
-    SessionFactory sessionFactory;
+    private ActorSystem system;
+    private Props props;
+    private DeviceActor deviceActor;
+    private TestActorRef<DeviceActor> testDeviceActor;
+    private Session session;
+    private SessionFactory sessionFactory;
 
 
     @Before
@@ -156,6 +156,20 @@ public class DeviceActorTest extends TestCase {
     }
 
     @Test
+    public void testInitObstalceEvent() throws Exception {
+        // given
+        EqStatus eqStatus = getTestDeviceInfo();
+
+        // when
+        boolean isInit = deviceActor.initObstalceEvent(eqStatus.getEqId());
+
+        // then
+        assertThat(isInit, is(true));
+
+
+    }
+
+    @Test
     public void testCompModelThresHold() throws Exception {
         // given
 
@@ -165,6 +179,22 @@ public class DeviceActorTest extends TestCase {
 
         // then
         assertThat(thresHold.containsKey("MXR-410K"), is(true));
+
+    }
+
+    @Test
+    public void testHasDisConnectionEvent() throws Exception {
+
+        EqStatus eqStatus = getTestDeviceInfo();
+
+        // given
+        deviceActor.insertDisconnectEvent(session, eqStatus.getEqId());
+
+        // when
+        boolean hasNoDisconnectionEvent = deviceActor.hasNoDisconnectionEvent(initTestDeviceDisconnected().getEqId());
+
+        // then
+        assertThat(hasNoDisconnectionEvent, is(false));
 
     }
 

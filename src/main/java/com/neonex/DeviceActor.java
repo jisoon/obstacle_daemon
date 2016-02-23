@@ -6,7 +6,6 @@ import com.neonex.dto.EqStatus;
 import com.neonex.dto.EventLog;
 import com.neonex.message.StartMsg;
 import com.neonex.utils.HibernateUtils;
-import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.Query;
 import org.hibernate.Session;
@@ -110,14 +109,21 @@ public class DeviceActor extends UntypedActor {
                     if (deviceLastConnTime < thresholdLastCommTime) {
                         logger.info(">>>> device status disconnect");
 
-                        // 이미 미연결 장애가 있다면 skip 처리 해야됨
-                        if(hasDisconnectionEvent(device.getEqId())){
+                        // 장비 상태를 미연결로 변경
+                        updateStatusDisconnect(session, device);
 
-                        }else{
-                            updateStatusDisconnect(session, device);
+                        // 기존에 있던 장애 이벤트를 초기화화
+                        initObstalceEvent(device.getEqId());
+
+                        // 이미 미연결 장애 이벤트가 있다면 skip
+                        if (hasNoDisconnectionEvent(device.getEqId())) {
                             insertDisconnectEvent(session, device.getEqId());
                             disconnectCount++;
                         }
+
+
+                        // device list 상태를 N 으로 변경
+                        device.setConnectYn("N");
 
                     }
                 }
@@ -133,8 +139,50 @@ public class DeviceActor extends UntypedActor {
         return disconnectCount;
     }
 
-    private boolean hasDisconnectionEvent(String eqId) {
-        return false;
+    public boolean initObstalceEvent(String eqId) {
+        long startTime = System.currentTimeMillis();
+
+        Session session = HibernateUtils.getSessionFactory().openSession();
+
+        EventLog eventLog = new EventLog();
+        eventLog.setEqId(eqId);
+        eventLog.setProcessDate(currentTime());
+        eventLog.setProcessYn("Y");
+        eventLog.setProcessCont("장비 미연결로 인한 이벤트 초기화");
+        try {
+            session.getTransaction().begin();
+            Query query = session.createSQLQuery(
+                    "update EQ_EVENT_LOG " +
+                            "set PROCESS_YN = 'Y', PROCESS_CONT = :processCont " +
+                            "where EQ_ID = :eqId " +
+                            "and EVENT_CODE not in('CON0001','CON0002')"
+            );
+            query.setParameter("eqId", eqId);
+            query.setParameter("processCont", "미연결로 인한 이벤트 초기화");
+            query.executeUpdate();
+            session.getTransaction().commit();
+            return true;
+        } catch (Exception e) {
+            logger.error("init obstacle event error", e);
+            session.getTransaction().rollback();
+            return false;
+        } finally {
+
+            long endTime = System.currentTimeMillis();
+            logger.info("Total elapsed time = " + (endTime - startTime));
+            session.close();
+        }
+
+        //13:43:00 INFO  com.neonex.DeviceActor - Total elapsed time = 256
+
+    }
+
+    public boolean hasNoDisconnectionEvent(String eqId) {
+        Session session = HibernateUtils.getSessionFactory().openSession();
+        List<EventLog> disconnEvent = session.createCriteria(EventLog.class)
+                .add(Restrictions.eq("processYn", "N"))
+                .add(Restrictions.eq("eventCode", "CON0002")).list();
+        return disconnEvent.size() > 0 ? false : true;
     }
 
     /**
@@ -179,7 +227,7 @@ public class DeviceActor extends UntypedActor {
         eventLog.setEqId(eqId);
         eventLog.setEventCont("미연결");
         eventLog.setEventLv(1);
-        eventLog.setProcessVn("N");
+        eventLog.setProcessYn("N");
         eventLog.setOccurDate(currentTime());
         eventLog.setEventSeq(getEventSeq(session));
         try {

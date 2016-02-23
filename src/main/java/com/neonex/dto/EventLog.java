@@ -27,7 +27,7 @@ public class EventLog {
     private String occurDate;
 
     @Column(name="PROCESS_YN")
-    private String processVn;
+    private String processYn;
 
     @Column(name="PROCESS_DATE")
     private String processDate;
@@ -35,6 +35,11 @@ public class EventLog {
     @Column(name="EVENT_LV")
     private int eventLv;
 
+    @Column(name = "PROCESS_CONT")
+    private String processCont;
+
+    @Column(name = "EVENT_CODE")
+    private String eventCode;
 
     public Long getEventSeq() {
         return eventSeq;
@@ -68,12 +73,12 @@ public class EventLog {
         this.occurDate = occurDate;
     }
 
-    public String getProcessVn() {
-        return processVn;
+    public String getProcessYn() {
+        return processYn;
     }
 
-    public void setProcessVn(String processVn) {
-        this.processVn = processVn;
+    public void setProcessYn(String processYn) {
+        this.processYn = processYn;
     }
 
     public String getProcessDate() {
@@ -92,16 +97,19 @@ public class EventLog {
         this.eventLv = eventLv;
     }
 
-    @Override
-    public String toString() {
-        return "EventLog{" +
-                "eventSeq=" + eventSeq +
-                ", eqId='" + eqId + '\'' +
-                ", eventCont='" + eventCont + '\'' +
-                ", occurDate='" + occurDate + '\'' +
-                ", processVn='" + processVn + '\'' +
-                ", processDate='" + processDate + '\'' +
-                ", eventLv=" + eventLv +
-                '}';
+    public String getProcessCont() {
+        return processCont;
+    }
+
+    public void setProcessCont(String processCont) {
+        this.processCont = processCont;
+    }
+
+    public String getEventCode() {
+        return eventCode;
+    }
+
+    public void setEventCode(String eventCode) {
+        this.eventCode = eventCode;
     }
 }
