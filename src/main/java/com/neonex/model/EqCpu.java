@@ -31,7 +31,7 @@ public class EqCpu {
     private String coreNum;
 
     @Column(name = "CPU_USAGE")
-    private int cpuUsage;
+    private double cpuUsage;
 }
 
 

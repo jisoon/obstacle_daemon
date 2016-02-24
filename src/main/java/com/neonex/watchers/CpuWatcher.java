@@ -9,9 +9,11 @@ import com.neonex.model.EqCpu;
 import com.neonex.model.EqStatus;
 import com.neonex.utils.HibernateUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
+import org.hibernate.transform.Transformers;
 
 import java.util.Collection;
 import java.util.List;
@@ -57,14 +59,18 @@ public class CpuWatcher extends UntypedActor {
             }
         });
 
-        List<EqCpu> eqCpus = (List<EqCpu>) session.createCriteria(EqCpu.class)
+        Criteria crit = session.createCriteria(EqCpu.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
+        List<EqCpu> eqCpus = crit
+
                 .setProjection(
                         Projections.projectionList()
-                                .add(Projections.groupProperty("eqId").as("EQ_ID"))
-                                .add(Projections.avg("cpuUsage").as("CPU_USAGE"))
+                                .add(Projections.groupProperty("eqId"), "eqId")
+                                .add(Projections.avg("cpuUsage"), "cpuUsage")
                 )
                 .add(Restrictions.in("eqId", eqIdList))
+                .setResultTransformer(Transformers.aliasToBean(EqCpu.class))
                 .list();
+
         log.info("{}", eqCpus.get(0));
 
 //        List<EqCpu> eqCpus = new ArrayList<EqCpu>();
