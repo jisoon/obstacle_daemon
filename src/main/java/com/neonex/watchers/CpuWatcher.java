@@ -7,9 +7,11 @@ import com.neonex.message.StartMsg;
 import com.neonex.model.CompModelEvent;
 import com.neonex.model.EqCpu;
 import com.neonex.model.EqStatus;
+import com.neonex.model.EventLog;
 import com.neonex.utils.HibernateUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Criteria;
+import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
@@ -76,6 +78,20 @@ public class CpuWatcher extends UntypedActor {
     }
 
     public boolean insertEvent(EqCpu eqCpu) {
-        return false;
+        EventLog eventLog = new EventLog();
+        eventLog.setEqId(eqCpu.getEqId());
+        Session session = HibernateUtils.getSessionFactory().openSession();
+        try {
+            session.getTransaction().begin();
+            session.save(eventLog);
+            session.getTransaction().commit();
+            return true;
+        } catch (HibernateException e) {
+            log.error("cpu event insert error", e);
+            session.getTransaction().rollback();
+            return false;
+        } finally {
+            session.close();
+        }
     }
 }
