@@ -69,8 +69,6 @@ public class CpuWatcherTest {
 
     @Test
     public void testfetchEqCpuStatus() throws Exception {
-
-
         // given
         EqStatus eqStatus = new EqStatus();
         eqStatus.setEqId("1");
@@ -78,10 +76,8 @@ public class CpuWatcherTest {
         List<EqStatus> eqStats = new ArrayList<EqStatus>();
         eqStats.add(eqStatus);
 
-        cpuWatcher.setEqStatusList(eqStats);
-
         // when
-        List<EqCpu> eqCpuStats = cpuWatcher.fetchEqCpuStatus();
+        List<EqCpu> eqCpuStats = cpuWatcher.fetchEqCpuStatus(eqStats);
 
         // then
         log.info("{}", eqCpuStats);
@@ -91,14 +87,57 @@ public class CpuWatcherTest {
     }
 
 
+    /**
+     * 현재 CPU 상태로 임계치를 초과지 확인
+     *
+     * @throws Exception
+     */
     @Test
     public void testDetectCpuObstacle() throws Exception {
         // given
+        EqCpu eqCpu = new EqCpu();
+        Double cpuMaxThresHold = Double.valueOf(90);
+        Double cpuMinThresHold = Double.valueOf(10);
 
+        boolean isOccurEvent = false;
+
+        eqCpu.setCpuUsage(90);
+        isOccurEvent = cpuWatcher.detectCpuObstacle(eqCpu.getCpuUsage(), cpuMinThresHold, cpuMaxThresHold);
+        assertThat(isOccurEvent).isFalse();
+
+        eqCpu.setCpuUsage(91);
+        isOccurEvent = cpuWatcher.detectCpuObstacle(eqCpu.getCpuUsage(), cpuMinThresHold, cpuMaxThresHold);
+        assertThat(isOccurEvent).isFalse();
+
+        eqCpu.setCpuUsage(89);
+        isOccurEvent = cpuWatcher.detectCpuObstacle(eqCpu.getCpuUsage(), cpuMinThresHold, cpuMaxThresHold);
+        assertThat(isOccurEvent).isTrue();
+
+        eqCpu.setCpuUsage(9);
+        isOccurEvent = cpuWatcher.detectCpuObstacle(eqCpu.getCpuUsage(), cpuMinThresHold, cpuMaxThresHold);
+        assertThat(isOccurEvent).isFalse();
+
+        eqCpu.setCpuUsage(10);
+        isOccurEvent = cpuWatcher.detectCpuObstacle(eqCpu.getCpuUsage(), cpuMinThresHold, cpuMaxThresHold);
+        assertThat(isOccurEvent).isTrue();
+
+        eqCpu.setCpuUsage(11);
+        isOccurEvent = cpuWatcher.detectCpuObstacle(eqCpu.getCpuUsage(), cpuMinThresHold, cpuMaxThresHold);
+        assertThat(isOccurEvent).isTrue();
+
+    }
+
+    @Test
+    public void testInsertCpuObstacle() throws Exception {
+        // given
+        EqCpu eqCpu = new EqCpu();
+        eqCpu.setEqId("1");
 
         // when
+        boolean inserted = cpuWatcher.insertEvent(eqCpu);
 
         // then
+        assertThat(inserted).isTrue();
 
     }
 }

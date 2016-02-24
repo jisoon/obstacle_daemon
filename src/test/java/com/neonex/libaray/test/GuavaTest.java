@@ -98,6 +98,7 @@ public class GuavaTest extends TestCase {
         assertThat(filterStrings).hasSize(1);
     }
 
+
     class State {
         private String stateCode;
         private String name;

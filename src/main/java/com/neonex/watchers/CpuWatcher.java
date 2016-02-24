@@ -48,7 +48,7 @@ public class CpuWatcher extends UntypedActor {
         return thresholdList;
     }
 
-    public List<EqCpu> fetchEqCpuStatus() {
+    public List<EqCpu> fetchEqCpuStatus(List<EqStatus> eqStatusList) {
 
         Session session = HibernateUtils.getSessionFactory().openSession();
 
@@ -61,23 +61,21 @@ public class CpuWatcher extends UntypedActor {
 
         Criteria crit = session.createCriteria(EqCpu.class);
         List<EqCpu> eqCpus = crit.setProjection(
-                        Projections.projectionList()
-                                .add(Projections.groupProperty("eqId").as("eqId"))
-                                .add(Projections.avg("cpuUsage").as("cpuUsage"))
-                )
+                Projections.projectionList()
+                        .add(Projections.groupProperty("eqId").as("eqId"))
+                        .add(Projections.avg("cpuUsage").as("cpuUsage"))
+        )
                 .add(Restrictions.in("eqId", eqIdList))
                 .setResultTransformer(Transformers.aliasToBean(EqCpu.class)) // alias 랑 이거 없으면 List<Object> 로 리턴함
                 .list();
         return eqCpus;
     }
 
-    public Collection<EqStatus> getEqStatusList() {
-        return eqStatusList;
+    public boolean detectCpuObstacle(Double cpuUsage, Double cpuMinThresHold, Double cpuMaxThresHold) {
+        return cpuUsage >= cpuMinThresHold && cpuUsage < cpuMaxThresHold ? true : false;
     }
 
-    public void setEqStatusList(Collection<EqStatus> eqStatusList) {
-        this.eqStatusList = eqStatusList;
+    public boolean insertEvent(EqCpu eqCpu) {
+        return false;
     }
-
-
 }
