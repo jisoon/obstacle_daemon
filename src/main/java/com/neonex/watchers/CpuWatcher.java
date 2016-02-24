@@ -8,10 +8,10 @@ import com.neonex.model.CompModelEvent;
 import com.neonex.model.EqCpu;
 import com.neonex.model.EqStatus;
 import com.neonex.utils.HibernateUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
+import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
@@ -22,8 +22,9 @@ import java.util.List;
  * @packageName : com.neonex.watchers
  * @since : 2016-02-17
  */
+@Slf4j
 public class CpuWatcher extends UntypedActor {
-    private Logger logger = LoggerFactory.getLogger(getClass());
+
 
     private Collection<EqStatus> eqStatusList;
 
@@ -31,7 +32,7 @@ public class CpuWatcher extends UntypedActor {
     public void onReceive(Object message) throws Exception {
         if (message instanceof StartMsg) {
             eqStatusList = ((StartMsg) message).getEqStatusList();
-            logger.info("eq status list size {}", eqStatusList.size());
+            log.info("eq status list size {}", eqStatusList.size());
         }
     }
 
@@ -41,7 +42,7 @@ public class CpuWatcher extends UntypedActor {
         List<CompModelEvent> thresholdList = session.createCriteria(CompModelEvent.class)
                 .add(Restrictions.eq("eventCode", "RES0001"))
                 .list();
-        logger.info("thresholdList {}", thresholdList);
+        log.info("thresholdList {}", thresholdList);
         return thresholdList;
     }
 
@@ -56,7 +57,15 @@ public class CpuWatcher extends UntypedActor {
             }
         });
 
-        List<EqCpu> eqCpus = session.createCriteria(EqCpu.class).add(Restrictions.in("eqId", eqIdList)).list();
+        List<EqCpu> eqCpus = (List<EqCpu>) session.createCriteria(EqCpu.class)
+                .setProjection(
+                        Projections.projectionList()
+                                .add(Projections.groupProperty("eqId").as("EQ_ID"))
+                                .add(Projections.avg("cpuUsage").as("CPU_USAGE"))
+                )
+                .add(Restrictions.in("eqId", eqIdList))
+                .list();
+        log.info("{}", eqCpus.get(0));
 
 //        List<EqCpu> eqCpus = new ArrayList<EqCpu>();
 //        EqCpu eqCpu = new EqCpu();

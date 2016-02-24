@@ -1,5 +1,7 @@
 package com.neonex.model;
 
+import lombok.Data;
+
 import javax.persistence.*;
 
 /**
@@ -7,6 +9,7 @@ import javax.persistence.*;
  * @packageName : com.neonex.dto
  * @since : 2016-02-17
  */
+@Data
 @SuppressWarnings("JpaDataSourceORMInspection")
 @Entity
 @Table(name = "EQ_STATUS_INFO")
@@ -26,35 +29,4 @@ public class EqStatus {
     @JoinColumn(name = "EQ_ID")
     private EqInfo eqInfo;
 
-    public String getEqId() {
-        return eqId;
-    }
-
-    public void setEqId(String eqId) {
-        this.eqId = eqId;
-    }
-
-    public String getLastCommTime() {
-        return lastCommTime;
-    }
-
-    public void setLastCommTime(String lastCommTime) {
-        this.lastCommTime = lastCommTime;
-    }
-
-    public String getConnectYn() {
-        return connectYn;
-    }
-
-    public void setConnectYn(String connectYn) {
-        this.connectYn = connectYn;
-    }
-
-    public EqInfo getEqInfo() {
-        return eqInfo;
-    }
-
-    public void setEqInfo(EqInfo eqInfo) {
-        this.eqInfo = eqInfo;
-    }
 }

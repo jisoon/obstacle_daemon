@@ -1,5 +1,7 @@
 package com.neonex.model;
 
+import lombok.Data;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -10,6 +12,7 @@ import javax.persistence.Table;
  * @packageName : com.neonex.dto
  * @since : 2016-02-19
  */
+@Data
 @SuppressWarnings("JpaDataSourceORMInspection")
 @Entity
 @Table(name = "COMP_MODEL_EVENT")
@@ -49,108 +52,4 @@ public class CompModelEvent {
     @Column(name = "USE_YN")
     private String useYn;
 
-    public String getCompModelEventSeq() {
-        return compModelEventSeq;
-    }
-
-    public void setCompModelEventSeq(String compModelEventSeq) {
-        this.compModelEventSeq = compModelEventSeq;
-    }
-
-    public String getEventCode() {
-        return eventCode;
-    }
-
-    public void setEventCode(String eventCode) {
-        this.eventCode = eventCode;
-    }
-
-    public String getEventCont() {
-        return eventCont;
-    }
-
-    public void setEventCont(String eventCont) {
-        this.eventCont = eventCont;
-    }
-
-    public int getMinValue() {
-        return minValue;
-    }
-
-    public void setMinValue(int minValue) {
-        this.minValue = minValue;
-    }
-
-    public int getMaxValue() {
-        return maxValue;
-    }
-
-    public void setMaxValue(int maxValue) {
-        this.maxValue = maxValue;
-    }
-
-    public String getNoticeMethod() {
-        return noticeMethod;
-    }
-
-    public void setNoticeMethod(String noticeMethod) {
-        this.noticeMethod = noticeMethod;
-    }
-
-    public String getEventLvCode() {
-        return eventLvCode;
-    }
-
-    public void setEventLvCode(String eventLvCode) {
-        this.eventLvCode = eventLvCode;
-    }
-
-    public String getModelCode() {
-        return modelCode;
-    }
-
-    public void setModelCode(String modelCode) {
-        this.modelCode = modelCode;
-    }
-
-    public String getCompCode() {
-        return compCode;
-    }
-
-    public void setCompCode(String compCode) {
-        this.compCode = compCode;
-    }
-
-    public String getEventTitle() {
-        return eventTitle;
-    }
-
-    public void setEventTitle(String eventTitle) {
-        this.eventTitle = eventTitle;
-    }
-
-    public String getUseYn() {
-        return useYn;
-    }
-
-    public void setUseYn(String useYn) {
-        this.useYn = useYn;
-    }
-
-    @Override
-    public String toString() {
-        return "CompModelEvent{" +
-                "compModelEventSeq='" + compModelEventSeq + '\'' +
-                ", eventCode='" + eventCode + '\'' +
-                ", eventCont='" + eventCont + '\'' +
-                ", minValue=" + minValue +
-                ", maxValue=" + maxValue +
-                ", noticeMethod='" + noticeMethod + '\'' +
-                ", eventLvCode='" + eventLvCode + '\'' +
-                ", modelCode='" + modelCode + '\'' +
-                ", compCode='" + compCode + '\'' +
-                ", eventTitle='" + eventTitle + '\'' +
-                ", useYn='" + useYn + '\'' +
-                '}';
-    }
 }

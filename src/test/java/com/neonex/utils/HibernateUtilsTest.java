@@ -2,6 +2,7 @@ package com.neonex.utils;
 
 import com.neonex.model.Account;
 import junit.framework.TestCase;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.junit.Before;
@@ -14,6 +15,7 @@ import java.util.List;
  * @packageName : com.neonex.utils
  * @since : 2016-02-17
  */
+@Slf4j
 @SuppressWarnings({"unchecked", "JpaQlInspection"})
 public class HibernateUtilsTest extends TestCase {
 

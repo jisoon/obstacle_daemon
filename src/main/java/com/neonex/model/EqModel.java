@@ -1,5 +1,7 @@
 package com.neonex.model;
 
+import lombok.Data;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -10,6 +12,8 @@ import javax.persistence.Table;
  * @packageName : com.neonex.dto
  * @since : 2016-02-22
  */
+@SuppressWarnings("JpaDataSourceORMInspection")
+@Data
 @Entity
 @Table(name = "EQ_MODEL_INFO")
 public class EqModel {
@@ -35,60 +39,4 @@ public class EqModel {
 
     @Column(name = "TYPE_CODE")
     private String typeCode;
-
-    public String getModelCode() {
-        return modelCode;
-    }
-
-    public void setModelCode(String modelCode) {
-        this.modelCode = modelCode;
-    }
-
-    public String getModelNm() {
-        return modelNm;
-    }
-
-    public void setModelNm(String modelNm) {
-        this.modelNm = modelNm;
-    }
-
-    public String getOsType() {
-        return osType;
-    }
-
-    public void setOsType(String osType) {
-        this.osType = osType;
-    }
-
-    public String getOsVer() {
-        return osVer;
-    }
-
-    public void setOsVer(String osVer) {
-        this.osVer = osVer;
-    }
-
-    public String getDisconnectObstacleYn() {
-        return disconnectObstacleYn;
-    }
-
-    public void setDisconnectObstacleYn(String disconnectObstacleYn) {
-        this.disconnectObstacleYn = disconnectObstacleYn;
-    }
-
-    public String getMakerNum() {
-        return makerNum;
-    }
-
-    public void setMakerNum(String makerNum) {
-        this.makerNum = makerNum;
-    }
-
-    public String getTypeCode() {
-        return typeCode;
-    }
-
-    public void setTypeCode(String typeCode) {
-        this.typeCode = typeCode;
-    }
 }

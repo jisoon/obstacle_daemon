@@ -44,6 +44,7 @@
     <orderEntry type="library" name="Maven: org.easytesting:fest-assert-core:2.0M10" level="project" />
     <orderEntry type="library" name="Maven: org.easytesting:fest-util:1.2.5" level="project" />
     <orderEntry type="library" name="Maven: com.google.guava:guava:19.0" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: org.projectlombok:lombok:1.16.6" level="project" />
     <orderEntry type="library" name="Maven: ch.qos.logback:logback-classic:1.1.5" level="project" />
     <orderEntry type="library" name="Maven: ch.qos.logback:logback-core:1.1.5" level="project" />
     <orderEntry type="library" name="Maven: commons-lang:commons-lang:2.3" level="project" />

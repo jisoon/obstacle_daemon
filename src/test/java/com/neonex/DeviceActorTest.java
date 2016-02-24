@@ -5,17 +5,16 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
-import com.neonex.model.EqStatus;
 import com.neonex.message.StartMsg;
+import com.neonex.model.EqStatus;
 import com.neonex.utils.HibernateUtils;
 import junit.framework.TestCase;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -28,10 +27,8 @@ import static org.fest.assertions.api.Assertions.assertThat;
  * @packageName : com.neonex
  * @since : 2016-02-16
  */
-
+@Slf4j
 public class DeviceActorTest extends TestCase {
-
-    private final static Logger logger = LoggerFactory.getLogger(DeviceActorTest.class);
 
     private ActorSystem system;
     private Props props;
@@ -95,8 +92,8 @@ public class DeviceActorTest extends TestCase {
             if (device.getEqInfo().getEqModel().getModelCode() == null) {
                 fail();
             } else {
-                logger.info("eq modelCode {}", device.getEqInfo().getEqId());
-                logger.info("eq modelCode {}", device.getEqInfo().getEqModel().getModelCode());
+                log.info("eq modelCode {}", device.getEqInfo().getEqId());
+                log.info("eq modelCode {}", device.getEqInfo().getEqModel().getModelCode());
             }
 
 

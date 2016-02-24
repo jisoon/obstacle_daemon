@@ -4,13 +4,11 @@ import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
-import com.neonex.DeviceActorTest;
 import junit.framework.TestCase;
+import lombok.extern.slf4j.Slf4j;
 import org.fest.util.Strings;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
@@ -22,9 +20,8 @@ import static org.fest.assertions.api.Assertions.assertThat;
  * @packageName : com.neonex.libaray.test
  * @since : 2016-02-24
  */
+@Slf4j
 public class GuavaTest extends TestCase {
-
-    private final static Logger logger = LoggerFactory.getLogger(DeviceActorTest.class);
 
     List<State> states;
 
@@ -96,7 +93,7 @@ public class GuavaTest extends TestCase {
                     }
                 });
 
-        logger.info("{}", filterStrings);
+        log.info("{}", filterStrings);
 
         assertThat(filterStrings).hasSize(1);
     }

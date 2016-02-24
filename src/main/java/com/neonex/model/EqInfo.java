@@ -1,5 +1,7 @@
 package com.neonex.model;
 
+import lombok.Data;
+
 import javax.persistence.*;
 
 /**
@@ -7,6 +9,7 @@ import javax.persistence.*;
  * @packageName : com.neonex.dto
  * @since : 2016-02-22
  */
+@Data
 @Entity
 @Table(name = "EQ_INFO")
 public class EqInfo {
@@ -21,28 +24,4 @@ public class EqInfo {
     @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name = "MODEL_CODE")
     private EqModel eqModel;
-
-    public String getEqId() {
-        return eqId;
-    }
-
-    public void setEqId(String eqId) {
-        this.eqId = eqId;
-    }
-
-    public String getEqNm() {
-        return eqNm;
-    }
-
-    public void setEqNm(String eqNm) {
-        this.eqNm = eqNm;
-    }
-
-    public EqModel getEqModel() {
-        return eqModel;
-    }
-
-    public void setEqModel(EqModel eqModel) {
-        this.eqModel = eqModel;
-    }
 }

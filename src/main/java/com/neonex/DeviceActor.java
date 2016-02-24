@@ -7,18 +7,17 @@ import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
+import com.neonex.message.StartMsg;
 import com.neonex.model.CompModelEvent;
 import com.neonex.model.EqStatus;
 import com.neonex.model.EventLog;
-import com.neonex.message.StartMsg;
 import com.neonex.utils.HibernateUtils;
 import com.neonex.watchers.CpuWatcher;
 import com.neonex.watchers.MemWatcher;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.criterion.Restrictions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -29,17 +28,16 @@ import java.util.*;
  * @packageName : com.neonex
  * @since : 2016-02-16
  */
+@Slf4j
 @SuppressWarnings("JpaQlInspection")
 public class DeviceActor extends UntypedActor {
-
-    private final static Logger logger = LoggerFactory.getLogger(DeviceActor.class);
 
     private ActorRef cpuWatcher;
 
     private ActorRef memWatcher;
 
     public DeviceActor() {
-        logger.info("default construnctor");
+        log.info("default construnctor");
         cpuWatcher = context().actorOf(Props.create(CpuWatcher.class), "cpuWatcher");
         memWatcher = context().actorOf(Props.create(MemWatcher.class), "memWatcher");
     }
@@ -47,10 +45,10 @@ public class DeviceActor extends UntypedActor {
     @Override
     public void onReceive(Object message) throws Exception {
         if (message instanceof StartMsg) {
-            logger.info("=== message received!!! ===");
+            log.info("=== message received!!! ===");
             List<EqStatus> devices = fetchDevice();
             int disconnecCount = detectDisconnect(devices);
-            logger.info("disconnect count {}", disconnecCount);
+            log.info("disconnect count {}", disconnecCount);
 
             // device connection 상태가 N 인 장비는 제거
             Collection<EqStatus> filterConnectionDevice = Collections2.filter(
@@ -76,7 +74,7 @@ public class DeviceActor extends UntypedActor {
      * @return
      */
     public List<EqStatus> fetchDevice() {
-        logger.info("=== fetchDevice ===");
+        log.info("=== fetchDevice ===");
         Session session = HibernateUtils.getSessionFactory().openSession();
         List<EqStatus> eqStatus = session.createCriteria(EqStatus.class)
                 .add(Restrictions.eq("connectYn", "Y"))
@@ -92,7 +90,7 @@ public class DeviceActor extends UntypedActor {
      * @return
      */
     public int detectDisconnect(List<EqStatus> devices) {
-        logger.info("=== detectDisconnect === ");
+        log.info("=== detectDisconnect === ");
 
         // 미연결 임계치 조회
         // 장비의 모델 코드로 미연결 임계치 정보를 조회 할 수 있음
@@ -116,14 +114,14 @@ public class DeviceActor extends UntypedActor {
                     if (Strings.isNullOrEmpty(device.getLastCommTime())) {
                         deviceLastConnTime = Long.parseLong(device.getLastCommTime());
                     }
-                    logger.info(">>>> device last connection time {} ", deviceLastConnTime);
+                    log.info(">>>> device last connection time {} ", deviceLastConnTime);
 
                     long thresholdLastCommTime = calcConnectionThresHoldTime(connectionInterval);
-                    logger.info(">>>> device threshold connection time {} ", thresholdLastCommTime);
+                    log.info(">>>> device threshold connection time {} ", thresholdLastCommTime);
 
                     // DB 시간과 임계치 시간 비교
                     if (deviceLastConnTime < thresholdLastCommTime) {
-                        logger.info(">>>> device status disconnect");
+                        log.info(">>>> device status disconnect");
 
                         // 장비 상태를 미연결로 변경
                         updateStatusDisconnect(session, device);
@@ -144,7 +142,7 @@ public class DeviceActor extends UntypedActor {
         } catch (NumberFormatException ne) {
             session.getTransaction().rollback();
         } catch (Exception e) {
-            logger.info("Exception ");
+            log.info("Exception ");
             e.printStackTrace();
         }
         session.getTransaction().commit();
@@ -182,13 +180,13 @@ public class DeviceActor extends UntypedActor {
             session.getTransaction().commit();
             return true;
         } catch (Exception e) {
-            logger.error("init obstacle event error", e);
+            log.error("init obstacle event error", e);
             session.getTransaction().rollback();
             return false;
         } finally {
 
             long endTime = System.currentTimeMillis();
-            logger.info("Total elapsed time = " + (endTime - startTime));
+            log.info("Total elapsed time = " + (endTime - startTime));
             session.close();
         }
 
@@ -248,7 +246,7 @@ public class DeviceActor extends UntypedActor {
      * @param device
      */
     public void updateStatusDisconnect(Session session, EqStatus device) {
-        logger.info("=== updateStatusDisconnect ===");
+        log.info("=== updateStatusDisconnect ===");
         EqStatus disconnectDevice = new EqStatus();
         disconnectDevice.setConnectYn("N");
         disconnectDevice.setEqId(device.getEqId());
@@ -264,7 +262,7 @@ public class DeviceActor extends UntypedActor {
      * @return
      */
     public boolean insertDisconnectEvent(Session session, String eqId) {
-        logger.info("=== insertDisconnectEvent ===");
+        log.info("=== insertDisconnectEvent ===");
         EventLog eventLog = new EventLog();
         eventLog.setEqId(eqId);
         eventLog.setEventCont("미연결");
@@ -276,7 +274,7 @@ public class DeviceActor extends UntypedActor {
             session.save(eventLog);
             return true;
         } catch (Exception e) {
-            logger.error("insert disconnect device error", e);
+            log.error("insert disconnect device error", e);
             return false;
         }
 
