@@ -16,7 +16,6 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static junit.framework.Assert.fail;
 import static org.fest.assertions.api.Assertions.assertThat;
 
 
@@ -94,10 +93,8 @@ public class CpuWatcherTest {
 
     @Test
     public void testDetectCpuObstacle() throws Exception {
-
-        fail();
-
         // given
+
 
         // when
 

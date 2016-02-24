@@ -59,27 +59,15 @@ public class CpuWatcher extends UntypedActor {
             }
         });
 
-        Criteria crit = session.createCriteria(EqCpu.class).setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-        List<EqCpu> eqCpus = crit
-
-                .setProjection(
+        Criteria crit = session.createCriteria(EqCpu.class);
+        List<EqCpu> eqCpus = crit.setProjection(
                         Projections.projectionList()
-                                .add(Projections.groupProperty("eqId"), "eqId")
-                                .add(Projections.avg("cpuUsage"), "cpuUsage")
+                                .add(Projections.groupProperty("eqId").as("eqId"))
+                                .add(Projections.avg("cpuUsage").as("cpuUsage"))
                 )
                 .add(Restrictions.in("eqId", eqIdList))
-                .setResultTransformer(Transformers.aliasToBean(EqCpu.class))
+                .setResultTransformer(Transformers.aliasToBean(EqCpu.class)) // alias 랑 이거 없으면 List<Object> 로 리턴함
                 .list();
-
-        log.info("{}", eqCpus.get(0));
-
-//        List<EqCpu> eqCpus = new ArrayList<EqCpu>();
-//        EqCpu eqCpu = new EqCpu();
-//        eqCpu.setEqId("1");
-//        eqCpu.setCpuUsage(60);
-//        eqCpu.setCoreNum(1);
-//        eqCpu.setCpuModel("INTEL");
-//        eqCpus.add(eqCpu);
         return eqCpus;
     }
 
