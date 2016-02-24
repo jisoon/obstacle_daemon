@@ -1,4 +1,4 @@
-package com.neonex.dto;
+package com.neonex.model;
 
 
 import javax.persistence.Column;

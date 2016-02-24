@@ -5,7 +5,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
-import com.neonex.dto.EqStatus;
+import com.neonex.model.EqStatus;
 import com.neonex.message.StartMsg;
 import com.neonex.utils.HibernateUtils;
 import junit.framework.TestCase;
@@ -20,9 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.fest.assertions.api.Assertions.assertThat;
 
 
 /**
@@ -79,7 +77,7 @@ public class DeviceActorTest extends TestCase {
 
         // then
         EqStatus device = deviceActor.findDevice(testDevice.getEqId());
-        assertThat(device.getConnectYn(), is("N"));
+        assertThat(device.getConnectYn()).isEqualTo("N");
 
     }
 
@@ -118,9 +116,9 @@ public class DeviceActorTest extends TestCase {
         testDevice = session.get(EqStatus.class, "1");
 
         // then
-        assertThat(disconnectCount, is(not(0)));
+        assertThat(disconnectCount).isNotZero();
         EqStatus disConnectedDevice = deviceActor.findDevice(testDevice.getEqId());
-        assertThat(disConnectedDevice.getConnectYn(), is("N"));
+        assertThat(disConnectedDevice.getConnectYn()).isEqualTo("N");
     }
 
     @Test
@@ -137,7 +135,7 @@ public class DeviceActorTest extends TestCase {
 
         // then
         EqStatus eqStatus = deviceActor.findDevice(testDevice.getEqId());
-        assertThat(eqStatus.getConnectYn(), is("N"));
+        assertThat(eqStatus.getConnectYn()).isEqualTo("N");
 
     }
 
@@ -170,7 +168,7 @@ public class DeviceActorTest extends TestCase {
         boolean isInit = deviceActor.initObstalceEvent(eqStatus.getEqId());
 
         // then
-        assertThat(isInit, is(true));
+        assertThat(isInit).isTrue();
 
 
     }
@@ -184,7 +182,7 @@ public class DeviceActorTest extends TestCase {
         Map<String, Object> thresHold = deviceActor.fetchConnetionThresHold();
 
         // then
-        assertThat(thresHold.containsKey("MXR-410K"), is(true));
+        assertThat(thresHold.containsKey("MXR-410K")).isTrue();
 
     }
 
@@ -200,7 +198,7 @@ public class DeviceActorTest extends TestCase {
         boolean hasNoDisconnectionEvent = deviceActor.hasNoDisconnectionEvent(initTestDeviceDisconnected().getEqId());
 
         // then
-        assertThat(hasNoDisconnectionEvent, is(false));
+        assertThat(hasNoDisconnectionEvent).isFalse();
 
     }
 

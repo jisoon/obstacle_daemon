@@ -3,14 +3,17 @@ package com.neonex;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import com.neonex.dto.CompModelEvent;
-import com.neonex.dto.EqStatus;
-import com.neonex.dto.EventLog;
+import com.google.common.base.Objects;
+import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
+import com.google.common.collect.Collections2;
+import com.neonex.model.CompModelEvent;
+import com.neonex.model.EqStatus;
+import com.neonex.model.EventLog;
 import com.neonex.message.StartMsg;
 import com.neonex.utils.HibernateUtils;
 import com.neonex.watchers.CpuWatcher;
 import com.neonex.watchers.MemWatcher;
-import org.apache.commons.lang.StringUtils;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.criterion.Restrictions;
@@ -49,7 +52,16 @@ public class DeviceActor extends UntypedActor {
             int disconnecCount = detectDisconnect(devices);
             logger.info("disconnect count {}", disconnecCount);
 
-            ((StartMsg) message).setEqStatusList(devices);
+            // device connection 상태가 N 인 장비는 제거
+            Collection<EqStatus> filterConnectionDevice = Collections2.filter(
+                    devices, new Predicate<EqStatus>() {
+                        @Override
+                        public boolean apply(EqStatus devices) {
+                            return Objects.equal(devices.getConnectYn(), "Y");
+                        }
+                    });
+
+            ((StartMsg) message).setEqStatusList(filterConnectionDevice);
 
             cpuWatcher.tell(message, getSelf());
 
@@ -101,7 +113,7 @@ public class DeviceActor extends UntypedActor {
                     int connectionInterval = (Integer) thresHold.get(device.getEqInfo().getEqModel().getModelCode());
 
                     long deviceLastConnTime = 0L;
-                    if (StringUtils.isNotBlank(device.getLastCommTime())) {
+                    if (Strings.isNullOrEmpty(device.getLastCommTime())) {
                         deviceLastConnTime = Long.parseLong(device.getLastCommTime());
                     }
                     logger.info(">>>> device last connection time {} ", deviceLastConnTime);

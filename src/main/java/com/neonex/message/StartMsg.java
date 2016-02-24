@@ -1,9 +1,9 @@
 package com.neonex.message;
 
-import com.neonex.dto.EqStatus;
+import com.neonex.model.EqStatus;
 
 import java.io.Serializable;
-import java.util.List;
+import java.util.Collection;
 
 /**
  * @author : 지순
@@ -12,13 +12,13 @@ import java.util.List;
  */
 public class StartMsg implements Serializable {
 
-    private List<EqStatus> eqStatusList;
+    private Collection<EqStatus> eqStatusList;
 
-    public List<EqStatus> getEqStatusList() {
+    public Collection<EqStatus> getEqStatusList() {
         return eqStatusList;
     }
 
-    public void setEqStatusList(List<EqStatus> eqStatusList) {
+    public void setEqStatusList(Collection<EqStatus> eqStatusList) {
         this.eqStatusList = eqStatusList;
     }
 }

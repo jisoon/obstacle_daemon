@@ -1,6 +1,6 @@
 package com.neonex.utils;
 
-import com.neonex.dto.Account;
+import com.neonex.model.Account;
 import junit.framework.TestCase;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;

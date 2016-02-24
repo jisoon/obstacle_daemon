@@ -11,7 +11,7 @@
       </configuration>
     </facet>
   </component>
-  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_5" inherit-compiler-output="false">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_6" inherit-compiler-output="false">
     <output url="file://$MODULE_DIR$/target/classes" />
     <output-test url="file://$MODULE_DIR$/target/test-classes" />
     <content url="file://$MODULE_DIR$">
@@ -41,6 +41,9 @@
     <orderEntry type="library" name="Maven: org.hibernate.common:hibernate-commons-annotations:5.0.1.Final" level="project" />
     <orderEntry type="library" name="Maven: com.oracle:ojdbc14:10.2.0.4.0" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.16" level="project" />
+    <orderEntry type="library" name="Maven: org.easytesting:fest-assert-core:2.0M10" level="project" />
+    <orderEntry type="library" name="Maven: org.easytesting:fest-util:1.2.5" level="project" />
+    <orderEntry type="library" name="Maven: com.google.guava:guava:19.0" level="project" />
     <orderEntry type="library" name="Maven: ch.qos.logback:logback-classic:1.1.5" level="project" />
     <orderEntry type="library" name="Maven: ch.qos.logback:logback-core:1.1.5" level="project" />
     <orderEntry type="library" name="Maven: commons-lang:commons-lang:2.3" level="project" />

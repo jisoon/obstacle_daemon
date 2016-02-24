@@ -4,7 +4,9 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestActorRef;
 import com.neonex.DeviceActorTest;
-import com.neonex.dto.CompModelEvent;
+import com.neonex.model.CompModelEvent;
+import com.neonex.model.EqCpu;
+import com.neonex.model.EqStatus;
 import com.neonex.utils.HibernateUtils;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -13,12 +15,12 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static junit.framework.Assert.fail;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.fest.assertions.api.Assertions.assertThat;
+
 
 /**
  * @author : 지순
@@ -65,9 +67,35 @@ public class CpuWatcherTest {
         List<CompModelEvent> modelEventList = cpuWatcher.fetchCpuThresHold();
 
         // then
-        assertThat(modelEventList.size(), is(not(0)));
+        assertThat(modelEventList).isNotEmpty();
 
     }
+
+    @Test
+    public void testfetchEqCpuStatus() throws Exception {
+
+
+        // given
+
+        EqStatus eqStatus = new EqStatus();
+        eqStatus.setEqId("1");
+
+        List<EqStatus> eqStats = new ArrayList<EqStatus>();
+        eqStats.add(eqStatus);
+
+        cpuWatcher.setEqStatusList(eqStats);
+
+        // when
+        List<EqCpu> eqCpuStats = cpuWatcher.fetchEqCpuStatus();
+
+        // then
+        logger.info("{}", eqCpuStats);
+        assertThat(eqCpuStats).isNotEmpty();
+        assertThat(eqCpuStats.get(0).getEqId()).isNotEmpty();
+        assertThat(eqCpuStats.get(0).getEqId()).isNotNull();
+        assertThat(eqCpuStats.get(0).getCpuUsage()).isNotZero();
+    }
+
 
     @Test
     public void testDetectCpuObstacle() throws Exception {
