@@ -5,8 +5,12 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.neonex.nesthing</groupId>
-    <artifactId>obstacle_daemon</artifactId>
+    <artifactId>obstacle_watcher</artifactId>
     <version>1.0</version>
+
+    <properties>
+        <jar.name>obstacle_watcher</jar.name>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -75,4 +79,29 @@
             <version>2.3</version>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.3.2</version>
+
+                <configuration>
+                    <finalName>${jar.name}</finalName>
+                    <!-- jar 파일이 생성될 폴더 -->
+                    <outputDirectory>${deploy.target.dir}</outputDirectory>
+                    <archive>
+                        <manifest>
+                            <!-- public static void main() 함수가 있는 클래스 지정 -->
+                            <mainClass>com.neonex.Main</mainClass>
+
+                            <!-- jar 파일 META-INF/MANIFEST.MF 에 클래스패스 정보 추가 -->
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

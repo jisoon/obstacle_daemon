@@ -17,16 +17,10 @@ public class Main {
     private final static Logger logger = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] ar) {
-
         logger.info(">>>>>>>>>>>>>>> OBSTACLE_DAEMON START!!!");
         ActorSystem system = ActorSystem.create("obstacle_daemon");
         ActorRef daemon = system.actorOf(Props.create(DeviceActor.class), "deviceStatus");
-//        system.scheduler().schedule(Duration.Zero(), Duration.create(60, TimeUnit.MILLISECONDS), daemon, "Tick", system.dispatcher());
-
         system.scheduler().schedule(Duration.Zero(), Duration.create(60, TimeUnit.SECONDS), daemon, new StartMsg(), system.dispatcher(), null);
-
-//This cancels further Ticks to be sent
-//        cancellable.cancel();
     }
 
 }
