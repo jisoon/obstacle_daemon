@@ -7,7 +7,7 @@
         </layout>
         -->
         <encoder>
-            <pattern>%d{HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%-5level %d{HH:mm:ss} - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -21,8 +21,13 @@
         <appender-ref ref="STDOUT" />
     </logger>
 
+    <!-- parameter 바인딩 로그 출력 -->
+    <logger name="org.hibernate.orm.connections" level="ERROR" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
     <!-- 객체에 맵핑되는 로그 필요 없는듯 -->
-    <logger name="org.hibernate.type.BasicTypeRegistry" level="ERROR " additivity="false">
+    <logger name="org.hibernate.type.BasicTypeRegistry" level="ERROR" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
 
