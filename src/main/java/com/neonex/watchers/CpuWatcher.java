@@ -1,24 +1,26 @@
 package com.neonex.watchers;
 
 import akka.actor.UntypedActor;
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 import com.neonex.message.StartMsg;
 import com.neonex.model.CompModelEvent;
 import com.neonex.model.EqCpu;
-import com.neonex.model.EqStatus;
 import com.neonex.model.EventLog;
 import com.neonex.utils.HibernateUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
+import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
 import org.hibernate.transform.Transformers;
 
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 
 /**
@@ -30,13 +32,18 @@ import java.util.List;
 public class CpuWatcher extends UntypedActor {
 
 
-    private Collection<EqStatus> eqStatusList;
+    public static final String CPU_EVENT_CODE = "RES0001";
+    private Collection<String> eqIds;
 
     @Override
     public void onReceive(Object message) throws Exception {
+        log.info("cpuWatcher message receive");
         if (message instanceof StartMsg) {
-            eqStatusList = ((StartMsg) message).getEqStatusList();
-            log.info("eq status list size {}", eqStatusList.size());
+            log.info("cpuWatcher start message receive");
+            eqIds = ((StartMsg) message).getEqIds();
+            log.info("eq status list size {}", eqIds.size());
+            List<CompModelEvent> compModelEventList = fetchCpuThresHold();
+            List<EqCpu> eqCpus = fetchEqCpuStatus(eqIds);
         }
     }
 
@@ -44,22 +51,15 @@ public class CpuWatcher extends UntypedActor {
 
         Session session = HibernateUtils.getSessionFactory().openSession();
         List<CompModelEvent> thresholdList = session.createCriteria(CompModelEvent.class)
-                .add(Restrictions.eq("eventCode", "RES0001"))
+                .add(Restrictions.eq("eventCode", CPU_EVENT_CODE))
                 .list();
         log.info("thresholdList {}", thresholdList);
         return thresholdList;
     }
 
-    public List<EqCpu> fetchEqCpuStatus(List<EqStatus> eqStatusList) {
+    public List<EqCpu> fetchEqCpuStatus(Collection<String> eqIdList) {
 
         Session session = HibernateUtils.getSessionFactory().openSession();
-
-        Collection<String> eqIdList = Collections2.transform(eqStatusList, new Function<EqStatus, String>() {
-            @Override
-            public String apply(EqStatus eqStatus) {
-                return eqStatus.getEqId();
-            }
-        });
 
         Criteria crit = session.createCriteria(EqCpu.class);
         List<EqCpu> eqCpus = crit.setProjection(
@@ -77,10 +77,11 @@ public class CpuWatcher extends UntypedActor {
         return cpuUsage >= cpuMinThresHold && cpuUsage < cpuMaxThresHold ? true : false;
     }
 
-    public boolean insertEvent(EqCpu eqCpu) {
-        EventLog eventLog = new EventLog();
-        eventLog.setEqId(eqCpu.getEqId());
+    public boolean insertEvent(String eqId, Double cpuUsage) {
         Session session = HibernateUtils.getSessionFactory().openSession();
+
+        EventLog eventLog = createCpuEventLog(eqId, cpuUsage);
+        eventLog.setEventSeq(getEventSeq(session));
         try {
             session.getTransaction().begin();
             session.save(eventLog);
@@ -93,5 +94,26 @@ public class CpuWatcher extends UntypedActor {
         } finally {
             session.close();
         }
+    }
+
+    private EventLog createCpuEventLog(String eqId, Double cpuUsage) {
+        EventLog eventLog = new EventLog();
+        eventLog.setEqId(eqId);
+        eventLog.setEventCode(CPU_EVENT_CODE);
+        eventLog.setEventCont("CPU 사용률 " + cpuUsage + "%");
+        eventLog.setEventLv(1);
+        eventLog.setProcessYn("N");
+        eventLog.setOccurDate(currentTime());
+        return eventLog;
+    }
+
+    private Long getEventSeq(Session session) {
+        Query query = session.createSQLQuery("select SQNT_EQ_EVENT_LOG_SEQ.nextval from dual");
+        return ((BigDecimal) query.uniqueResult()).longValue();
+    }
+
+    private String currentTime() {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA);
+        return formatter.format(new Date());
     }
 }

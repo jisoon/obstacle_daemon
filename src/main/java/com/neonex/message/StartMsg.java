@@ -1,6 +1,7 @@
 package com.neonex.message;
 
-import com.neonex.model.EqStatus;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -10,15 +11,13 @@ import java.util.Collection;
  * @packageName : com.neonex.message
  * @since : 2016-02-16
  */
+@Data
+@AllArgsConstructor
 public class StartMsg implements Serializable {
 
-    private Collection<EqStatus> eqStatusList;
+    public StartMsg() {
 
-    public Collection<EqStatus> getEqStatusList() {
-        return eqStatusList;
     }
 
-    public void setEqStatusList(Collection<EqStatus> eqStatusList) {
-        this.eqStatusList = eqStatusList;
-    }
+    private Collection<String> eqIds;
 }

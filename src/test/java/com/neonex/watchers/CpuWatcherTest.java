@@ -1,8 +1,10 @@
 package com.neonex.watchers;
 
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestActorRef;
+import com.neonex.message.StartMsg;
 import com.neonex.model.CompModelEvent;
 import com.neonex.model.EqCpu;
 import com.neonex.model.EqStatus;
@@ -14,9 +16,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static org.fest.assertions.api.Assertions.assertThat;
+import static org.fest.assertions.api.Assertions.fail;
 
 
 /**
@@ -35,6 +39,7 @@ public class CpuWatcherTest {
 
     private Session session;
     private SessionFactory sessionFactory;
+    private Collection<String> eqIds;
 
 
     @Before
@@ -47,12 +52,22 @@ public class CpuWatcherTest {
 
         testActorRef = TestActorRef.create(system, props, "DeviceActorTest");
         cpuWatcher = testActorRef.underlyingActor();
+        eqIds = new ArrayList<String>();
+        eqIds.add("1");
 
     }
 
     @Test
     public void testOnReceive() throws Exception {
-
+        try {
+            final Props props = Props.create(CpuWatcher.class);
+            final TestActorRef<CpuWatcher> testRef = TestActorRef.create(system, props, "testCpuWatcher");
+            StartMsg startMsg = new StartMsg(eqIds);
+            testRef.tell(startMsg, ActorRef.noSender());
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("onReceive fail");
+        }
     }
 
     @Test
@@ -68,16 +83,16 @@ public class CpuWatcherTest {
     }
 
     @Test
-    public void testfetchEqCpuStatus() throws Exception {
+    public void testFetchEqCpuStatus() throws Exception {
         // given
         EqStatus eqStatus = new EqStatus();
         eqStatus.setEqId("1");
 
-        List<EqStatus> eqStats = new ArrayList<EqStatus>();
-        eqStats.add(eqStatus);
+        Collection<String> eqIdList = new ArrayList<String>();
+        eqIdList.add("1");
 
         // when
-        List<EqCpu> eqCpuStats = cpuWatcher.fetchEqCpuStatus(eqStats);
+        List<EqCpu> eqCpuStats = cpuWatcher.fetchEqCpuStatus(eqIdList);
 
         // then
         log.info("{}", eqCpuStats);
@@ -134,7 +149,7 @@ public class CpuWatcherTest {
         eqCpu.setEqId("1");
 
         // when
-        boolean inserted = cpuWatcher.insertEvent(eqCpu);
+        boolean inserted = cpuWatcher.insertEvent("1", Double.valueOf(80));
 
         // then
         assertThat(inserted).isTrue();

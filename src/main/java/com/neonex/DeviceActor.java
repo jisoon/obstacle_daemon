@@ -3,6 +3,7 @@ package com.neonex;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
@@ -32,6 +33,8 @@ import java.util.*;
 @SuppressWarnings("JpaQlInspection")
 public class DeviceActor extends UntypedActor {
 
+    public static final String DICONNECT_EVENT_CODE = "CON0002";
+    public static final String DISCONNECT_EVENT_CON = "미연결";
     private ActorRef cpuWatcher;
 
     private ActorRef memWatcher;
@@ -50,22 +53,25 @@ public class DeviceActor extends UntypedActor {
             int disconnecCount = detectDisconnect(devices);
             log.info("disconnect count {}", disconnecCount);
 
-            // device connection 상태가 N 인 장비는 제거
-            Collection<EqStatus> filterConnectionDevice = Collections2.filter(
-                    devices, new Predicate<EqStatus>() {
-                        @Override
-                        public boolean apply(EqStatus devices) {
-                            return Objects.equal(devices.getConnectYn(), "Y");
-                        }
-                    });
-
-            ((StartMsg) message).setEqStatusList(filterConnectionDevice);
+            // device connection 상태가 N 인 장비는 제거하고
+            // eqId 만 존재 하는 collection 으로 변경
+            ((StartMsg) message).setEqIds(convertEqIdCollection(filterConnectionDevice(devices)));
 
             cpuWatcher.tell(message, getSelf());
 
         } else {
             unhandled(message);
         }
+    }
+
+    private Collection<EqStatus> filterConnectionDevice(List<EqStatus> devices) {
+        return Collections2.filter(
+                devices, new Predicate<EqStatus>() {
+                    @Override
+                    public boolean apply(EqStatus devices) {
+                        return Objects.equal(devices.getConnectYn(), "Y");
+                    }
+                });
     }
 
     /**
@@ -265,7 +271,8 @@ public class DeviceActor extends UntypedActor {
         log.info("=== insertDisconnectEvent ===");
         EventLog eventLog = new EventLog();
         eventLog.setEqId(eqId);
-        eventLog.setEventCont("미연결");
+        eventLog.setEventCode(DICONNECT_EVENT_CODE);
+        eventLog.setEventCont(DISCONNECT_EVENT_CON);
         eventLog.setEventLv(1);
         eventLog.setProcessYn("N");
         eventLog.setOccurDate(currentTime());
@@ -298,5 +305,14 @@ public class DeviceActor extends UntypedActor {
         cal.setTime(date);
         cal.add(Calendar.SECOND, (int) ((-1) * thresHoldTime));
         return Long.parseLong(formatter.format(cal.getTime()));
+    }
+
+    private Collection<String> convertEqIdCollection(Collection<EqStatus> eqStatusList) {
+        return Collections2.transform(eqStatusList, new Function<EqStatus, String>() {
+            @Override
+            public String apply(EqStatus eqStatus) {
+                return eqStatus.getEqId();
+            }
+        });
     }
 }
