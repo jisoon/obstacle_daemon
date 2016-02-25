@@ -11,16 +11,14 @@ import com.google.common.collect.Collections2;
 import com.neonex.message.StartMsg;
 import com.neonex.model.CompModelEvent;
 import com.neonex.model.EqStatus;
-import com.neonex.model.EventLog;
 import com.neonex.utils.HibernateUtils;
 import com.neonex.watchers.CpuWatcher;
+import com.neonex.watchers.DisconnectWatcher;
 import com.neonex.watchers.MemWatcher;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.criterion.Restrictions;
 
-import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -32,16 +30,14 @@ import java.util.*;
 @Slf4j
 @SuppressWarnings("JpaQlInspection")
 public class DeviceActor extends UntypedActor {
-
-    public static final String DICONNECT_EVENT_CODE = "CON0002";
-    public static final String DISCONNECT_EVENT_CON = "미연결";
     private ActorRef cpuWatcher;
-
     private ActorRef memWatcher;
+    private ActorRef disconnectWatcher;
 
     public DeviceActor() {
         cpuWatcher = context().actorOf(Props.create(CpuWatcher.class), "cpuWatcher");
         memWatcher = context().actorOf(Props.create(MemWatcher.class), "memWatcher");
+        disconnectWatcher = context().actorOf(Props.create(DisconnectWatcher.class), "disconnectWatcher");
     }
 
     @Override
@@ -49,13 +45,15 @@ public class DeviceActor extends UntypedActor {
         if (message instanceof StartMsg) {
             log.info("=== daemon message received!!! ===");
             List<EqStatus> devices = fetchDevice();
-            detectDisconnect(devices);
-            // device connection 상태가 N 인 장비는 제거하고
-            // eqId 만 존재 하는 collection 으로 변경
-            ((StartMsg) message).setEqIds(convertEqIdCollection(filterConnectionDevice(devices)));
 
-            cpuWatcher.tell(message, getSelf());
-            log.info("=== disconnection watcher done!!");
+            detectDisconnect(devices);
+
+            Collection<String> connectionEqIds = convertEqIdCollection(filterConnectionDevice(devices));
+            Collection<String> disconnectionEqIds = convertEqIdCollection(filterDisconnectionDevice(devices));
+
+            cpuWatcher.tell(new StartMsg(connectionEqIds), getSelf());
+            memWatcher.tell(new StartMsg(connectionEqIds), getSelf());
+            disconnectWatcher.tell(new StartMsg(disconnectionEqIds), getSelf());
         } else {
             unhandled(message);
         }
@@ -67,6 +65,16 @@ public class DeviceActor extends UntypedActor {
                     @Override
                     public boolean apply(EqStatus devices) {
                         return Objects.equal(devices.getConnectYn(), "Y");
+                    }
+                });
+    }
+
+    private Collection<EqStatus> filterDisconnectionDevice(List<EqStatus> devices) {
+        return Collections2.filter(
+                devices, new Predicate<EqStatus>() {
+                    @Override
+                    public boolean apply(EqStatus devices) {
+                        return Objects.equal(devices.getConnectYn(), "N");
                     }
                 });
     }
@@ -120,16 +128,6 @@ public class DeviceActor extends UntypedActor {
 
                     // DB 시간과 임계치 시간 비교
                     if (deviceLastConnTime < thresholdLastCommTime) {
-                        // 장비 상태를 미연결로 변경
-                        updateStatusDisconnect(session, device);
-
-                        // 기존에 있던 장애 이벤트를 초기화화
-                        initObstalceEvent(device.getEqId());
-
-                        // 이미 미연결 장애 이벤트가 있다면 skip
-                        if (hasNoDisconnectionEvent(device.getEqId())) {
-                            insertDisconnectEvent(session, device.getEqId(), "CRITICAL");
-                        }
                         // device list 상태를 N 으로 변경
                         device.setConnectYn("N");
                     }
@@ -143,62 +141,6 @@ public class DeviceActor extends UntypedActor {
         }
         session.getTransaction().commit();
         session.close();
-    }
-
-    /**
-     * 미연결 이벤트를 제외한 이벤트 처리 완료
-     *
-     * @param eqId
-     * @return
-     */
-    public boolean initObstalceEvent(String eqId) {
-        long startTime = System.currentTimeMillis();
-
-        Session session = HibernateUtils.getSessionFactory().openSession();
-
-        EventLog eventLog = new EventLog();
-        eventLog.setEqId(eqId);
-        eventLog.setProcessDate(currentTime());
-        eventLog.setProcessYn("Y");
-        eventLog.setProcessCont("장비 미연결로 인한 이벤트 초기화");
-        try {
-            session.getTransaction().begin();
-            Query query = session.createSQLQuery(
-                    "update EQ_EVENT_LOG " +
-                            "set PROCESS_YN = 'Y', PROCESS_CONT = :processCont " +
-                            "where EQ_ID = :eqId " +
-                            "and EVENT_CODE not in('CON0001','CON0002')"
-            );
-            query.setParameter("eqId", eqId);
-            query.setParameter("processCont", "미연결로 인한 이벤트 초기화");
-            query.executeUpdate();
-            session.getTransaction().commit();
-            return true;
-        } catch (Exception e) {
-            log.error("init obstacle event error", e);
-            session.getTransaction().rollback();
-            return false;
-        } finally {
-
-            long endTime = System.currentTimeMillis();
-            session.close();
-        }
-
-        //13:43:00 INFO  com.neonex.DeviceActor - Total elapsed time = 256
-
-    }
-
-    /**
-     * 미연결 이벤트가 존재 하는지 확인
-     * @param eqId
-     * @return
-     */
-    public boolean hasNoDisconnectionEvent(String eqId) {
-        Session session = HibernateUtils.getSessionFactory().openSession();
-        List<EventLog> disconnEvent = session.createCriteria(EventLog.class)
-                .add(Restrictions.eq("processYn", "N"))
-                .add(Restrictions.eq("eventCode", "CON0002")).list();
-        return disconnEvent.size() > 0 ? false : true;
     }
 
     /**
@@ -231,58 +173,6 @@ public class DeviceActor extends UntypedActor {
         EqStatus device = session.get(EqStatus.class, eqId);
         session.close();
         return device;
-    }
-
-    /**
-     * 장비 미연결 상태로 update
-     * transaction 때문에 session 을 파라미터로 받아 됩니다.
-     * @param session
-     * @param device
-     */
-    public void updateStatusDisconnect(Session session, EqStatus device) {
-
-        EqStatus disconnectDevice = new EqStatus();
-        disconnectDevice.setConnectYn("N");
-        disconnectDevice.setEqId(device.getEqId());
-        disconnectDevice.setLastCommTime(device.getLastCommTime());
-        session.update(disconnectDevice);
-    }
-
-    /**
-     * 미연결 이벤트 insert
-     * transaction 때문에 session 을 파라미터로 받아 됩니다.
-     * @param session
-     * @param eqId
-     * @return
-     */
-    public boolean insertDisconnectEvent(Session session, String eqId, String eventLevelCode) {
-
-        EventLog eventLog = new EventLog();
-        eventLog.setEqId(eqId);
-        eventLog.setEventCode(DICONNECT_EVENT_CODE);
-        eventLog.setEventCont(DISCONNECT_EVENT_CON);
-        eventLog.setEventLevelCode(eventLevelCode);
-        eventLog.setProcessYn("N");
-        eventLog.setOccurDate(currentTime());
-        eventLog.setEventSeq(getEventSeq(session));
-        try {
-            session.save(eventLog);
-            return true;
-        } catch (Exception e) {
-            log.error("insert disconnect device error", e);
-            return false;
-        }
-
-    }
-
-    private Long getEventSeq(Session session) {
-        Query query = session.createSQLQuery("select SQNT_EQ_EVENT_LOG_SEQ.nextval from dual");
-        return ((BigDecimal) query.uniqueResult()).longValue();
-    }
-
-    private String currentTime() {
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA);
-        return formatter.format(new Date());
     }
 
     private Long calcConnectionThresHoldTime(int thresHoldTime) {

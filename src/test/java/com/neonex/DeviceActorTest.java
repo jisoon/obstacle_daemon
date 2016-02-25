@@ -119,57 +119,7 @@ public class DeviceActorTest extends TestCase {
         assertThat(disConnectedDevice.getConnectYn()).isEqualTo("N");
     }
 
-    @Test
-    public void testUpdateStatusDisconnect() throws Exception {
-        // given
-        EqStatus testDevice = initTestDeviceDisconnected();
 
-        // when
-        Session session = sessionFactory.openSession();
-        session.getTransaction().begin();
-        deviceActor.updateStatusDisconnect(session, testDevice);
-        session.getTransaction().commit();
-        session.close();
-
-        // then
-        EqStatus eqStatus = deviceActor.findDevice(testDevice.getEqId());
-        assertThat(eqStatus.getConnectYn()).isEqualTo("N");
-
-    }
-
-    @Test
-    public void testInsertDisconnectEvent() throws Exception {
-        // given
-        EqStatus testDevice = getTestDeviceInfo();
-
-        // when
-        Session session = HibernateUtils.getSessionFactory().openSession();
-        session.getTransaction().begin();
-        boolean isInserted = deviceActor.insertDisconnectEvent(session, testDevice.getEqId(), CRITICAL);
-        if (!isInserted) {
-            session.getTransaction().rollback();
-            session.close();
-            fail();
-        }else{
-            session.getTransaction().commit();
-            session.close();
-            assertTrue(true);
-        }
-    }
-
-    @Test
-    public void testInitObstalceEvent() throws Exception {
-        // given
-        EqStatus eqStatus = getTestDeviceInfo();
-
-        // when
-        boolean isInit = deviceActor.initObstalceEvent(eqStatus.getEqId());
-
-        // then
-        assertThat(isInit).isTrue();
-
-
-    }
 
     @Test
     public void testCompModelThresHold() throws Exception {
@@ -181,22 +131,6 @@ public class DeviceActorTest extends TestCase {
 
         // then
         assertThat(thresHold.containsKey("MXR-410K")).isTrue();
-
-    }
-
-    @Test
-    public void testHasDisConnectionEvent() throws Exception {
-
-        EqStatus eqStatus = getTestDeviceInfo();
-
-        // given
-        deviceActor.insertDisconnectEvent(session, eqStatus.getEqId(), CRITICAL);
-
-        // when
-        boolean hasNoDisconnectionEvent = deviceActor.hasNoDisconnectionEvent(initTestDeviceDisconnected().getEqId());
-
-        // then
-        assertThat(hasNoDisconnectionEvent).isFalse();
 
     }
 

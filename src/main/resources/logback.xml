@@ -22,7 +22,7 @@
     </logger>
 
     <!-- 객체에 맵핑되는 로그 필요 없는듯 -->
-    <logger name="org.hibernate.type.BasicTypeRegistry" level="ERROR" additivity="false">
+    <logger name="org.hibernate.type.BasicTypeRegistry" level="ERROR " additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
 
