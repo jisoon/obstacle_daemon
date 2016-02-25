@@ -35,8 +35,8 @@ public class EventLog {
     @Column(name="PROCESS_DATE")
     private String processDate;
 
-    @Column(name="EVENT_LV")
-    private int eventLv;
+    @Column(name = "EVENT_LV_CODE")
+    private String eventLevelCode;
 
     @Column(name = "PROCESS_CONT")
     private String processCont;

@@ -50,9 +50,7 @@ public class DeviceActor extends UntypedActor {
         if (message instanceof StartMsg) {
             log.info("=== message received!!! ===");
             List<EqStatus> devices = fetchDevice();
-            int disconnecCount = detectDisconnect(devices);
-            log.info("disconnect count {}", disconnecCount);
-
+            detectDisconnect(devices);
             // device connection 상태가 N 인 장비는 제거하고
             // eqId 만 존재 하는 collection 으로 변경
             ((StartMsg) message).setEqIds(convertEqIdCollection(filterConnectionDevice(devices)));
@@ -95,7 +93,7 @@ public class DeviceActor extends UntypedActor {
      * @param devices
      * @return
      */
-    public int detectDisconnect(List<EqStatus> devices) {
+    public void detectDisconnect(List<EqStatus> devices) {
         log.info("=== detectDisconnect === ");
 
         // 미연결 임계치 조회
@@ -104,7 +102,6 @@ public class DeviceActor extends UntypedActor {
 
         Session session = HibernateUtils.getSessionFactory().openSession();
         session.getTransaction().begin();
-        int disconnectCount = 0;
         try {
             for (EqStatus device : devices) {
                 String deviceModelCode = device.getEqInfo().getEqModel().getModelCode();
@@ -137,8 +134,7 @@ public class DeviceActor extends UntypedActor {
 
                         // 이미 미연결 장애 이벤트가 있다면 skip
                         if (hasNoDisconnectionEvent(device.getEqId())) {
-                            insertDisconnectEvent(session, device.getEqId());
-                            disconnectCount++;
+                            insertDisconnectEvent(session, device.getEqId(), "CRITICAL");
                         }
                         // device list 상태를 N 으로 변경
                         device.setConnectYn("N");
@@ -153,7 +149,6 @@ public class DeviceActor extends UntypedActor {
         }
         session.getTransaction().commit();
         session.close();
-        return disconnectCount;
     }
 
     /**
@@ -267,13 +262,13 @@ public class DeviceActor extends UntypedActor {
      * @param eqId
      * @return
      */
-    public boolean insertDisconnectEvent(Session session, String eqId) {
+    public boolean insertDisconnectEvent(Session session, String eqId, String eventLevelCode) {
         log.info("=== insertDisconnectEvent ===");
         EventLog eventLog = new EventLog();
         eventLog.setEqId(eqId);
         eventLog.setEventCode(DICONNECT_EVENT_CODE);
         eventLog.setEventCont(DISCONNECT_EVENT_CON);
-        eventLog.setEventLv(1);
+        eventLog.setEventLevelCode(eventLevelCode);
         eventLog.setProcessYn("N");
         eventLog.setOccurDate(currentTime());
         eventLog.setEventSeq(getEventSeq(session));

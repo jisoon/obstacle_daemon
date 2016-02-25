@@ -6,6 +6,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serializable;
 
 /**
  * @author : 지순
@@ -16,7 +17,7 @@ import javax.persistence.Table;
 @SuppressWarnings("JpaDataSourceORMInspection")
 @Entity
 @Table(name = "EQ_CPU")
-public class EqCpu {
+public class EqCpu implements Serializable {
     @Id
     @Column(name = "EQ_ID")
     private String eqId;
@@ -27,6 +28,7 @@ public class EqCpu {
     @Column(name = "CPU_MAKER")
     private String cpuMaker;
 
+    @Id
     @Column(name = "CORE_NUM")
     private String coreNum;
 

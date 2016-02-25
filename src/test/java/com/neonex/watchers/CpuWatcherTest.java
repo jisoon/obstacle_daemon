@@ -3,6 +3,7 @@ package com.neonex.watchers;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
 import com.neonex.message.StartMsg;
 import com.neonex.model.CompModelEvent;
@@ -12,6 +13,7 @@ import com.neonex.utils.HibernateUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,12 +42,12 @@ public class CpuWatcherTest {
     private Session session;
     private SessionFactory sessionFactory;
     private Collection<String> eqIds;
+    private final String CRITICAL = "CRITICAL";
 
 
     @Before
     public void setUp() throws Exception {
-        sessionFactory = HibernateUtils.getSessionFactory();
-        session = sessionFactory.openSession();
+
 
         system = ActorSystem.create();
         props = Props.create(CpuWatcher.class);
@@ -57,8 +59,31 @@ public class CpuWatcherTest {
 
     }
 
+    @After
+    public void tearDown() throws Exception {
+        JavaTestKit.shutdownActorSystem(system);
+        system = null;
+    }
+
     @Test
     public void testOnReceive() throws Exception {
+        EqCpu eqCpu = new EqCpu();
+        eqCpu.setEqId("1");
+        eqCpu.setCpuMaker("INTEL");
+        eqCpu.setCpuModel("I5-3230M");
+        eqCpu.setCoreNum("1");
+        eqCpu.setCpuUsage(90);
+
+        sessionFactory = HibernateUtils.getSessionFactory();
+        session = sessionFactory.openSession();
+
+        session.getTransaction().begin();
+        session.update(eqCpu);
+        session.getTransaction().commit();
+
+        session.close();
+
+
         try {
             final Props props = Props.create(CpuWatcher.class);
             final TestActorRef<CpuWatcher> testRef = TestActorRef.create(system, props, "testCpuWatcher");
@@ -111,8 +136,8 @@ public class CpuWatcherTest {
     public void testDetectCpuObstacle() throws Exception {
         // given
         EqCpu eqCpu = new EqCpu();
-        Double cpuMaxThresHold = Double.valueOf(90);
-        Double cpuMinThresHold = Double.valueOf(10);
+        int cpuMaxThresHold = 90;
+        int cpuMinThresHold = 10;
 
         boolean isOccurEvent = false;
 
@@ -149,10 +174,24 @@ public class CpuWatcherTest {
         eqCpu.setEqId("1");
 
         // when
-        boolean inserted = cpuWatcher.insertEvent("1", Double.valueOf(80));
+        boolean inserted = cpuWatcher.insertEvent("1", Double.valueOf(80), CRITICAL);
 
         // then
         assertThat(inserted).isTrue();
+
+    }
+
+    @Test
+    public void testFindEqModelCode() throws Exception {
+        // given
+
+        // when
+        String eqModelCode = cpuWatcher.findEqModelCode("1");
+
+        // then
+        log.info(eqModelCode);
+        assertThat(eqModelCode).isNotNull();
+        assertThat(eqModelCode).isNotEmpty();
 
     }
 }

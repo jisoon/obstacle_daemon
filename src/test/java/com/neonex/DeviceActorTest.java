@@ -30,6 +30,7 @@ import static org.fest.assertions.api.Assertions.assertThat;
 @Slf4j
 public class DeviceActorTest extends TestCase {
 
+    public static final String CRITICAL = "CRITICAL";
     private ActorSystem system;
     private Props props;
 
@@ -109,11 +110,11 @@ public class DeviceActorTest extends TestCase {
         List<EqStatus> devices = deviceActor.fetchDevice();
 
         // when
-        int disconnectCount = deviceActor.detectDisconnect(devices);
+        deviceActor.detectDisconnect(devices);
         testDevice = session.get(EqStatus.class, "1");
 
         // then
-        assertThat(disconnectCount).isNotZero();
+
         EqStatus disConnectedDevice = deviceActor.findDevice(testDevice.getEqId());
         assertThat(disConnectedDevice.getConnectYn()).isEqualTo("N");
     }
@@ -144,7 +145,7 @@ public class DeviceActorTest extends TestCase {
         // when
         Session session = HibernateUtils.getSessionFactory().openSession();
         session.getTransaction().begin();
-        boolean isInserted = deviceActor.insertDisconnectEvent(session, testDevice.getEqId());
+        boolean isInserted = deviceActor.insertDisconnectEvent(session, testDevice.getEqId(), CRITICAL);
         if (!isInserted) {
             session.getTransaction().rollback();
             session.close();
@@ -189,7 +190,7 @@ public class DeviceActorTest extends TestCase {
         EqStatus eqStatus = getTestDeviceInfo();
 
         // given
-        deviceActor.insertDisconnectEvent(session, eqStatus.getEqId());
+        deviceActor.insertDisconnectEvent(session, eqStatus.getEqId(), CRITICAL);
 
         // when
         boolean hasNoDisconnectionEvent = deviceActor.hasNoDisconnectionEvent(initTestDeviceDisconnected().getEqId());
