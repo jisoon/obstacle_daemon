@@ -12,17 +12,17 @@
     </appender>
 
     <!-- 실행 sql 출력 -->
-    <logger name="org.hibernate.SQL" level="TRACE" additivity="false">
+    <logger name="org.hibernate.SQL" level="ERROR" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
 
     <!-- parameter 바인딩 로그 출력 -->
-    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE" additivity="false">
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="ERROR" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
 
     <!-- 객체에 맵핑되는 로그 필요 없는듯 -->
-    <logger name="org.hibernate.type.BasicTypeRegistry" level="WARN" additivity="false">
+    <logger name="org.hibernate.type.BasicTypeRegistry" level="ERROR" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
 

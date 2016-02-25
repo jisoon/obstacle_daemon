@@ -31,11 +31,11 @@ public class CpuWatcher extends UntypedActor {
 
     @Override
     public void onReceive(Object message) throws Exception {
-        log.info("cpuWatcher message receive");
+        log.info("==== cpuWatcher message receive");
         if (message instanceof StartMsg) {
-            log.info("cpuWatcher start message receive");
+
             Collection<String> eqIds = ((StartMsg) message).getEqIds();
-            log.info("eq status list size {}", eqIds.size());
+
             List<CompModelEvent> compModelEventList = fetchCpuThresHold();
             List<EqCpu> eqCpus = fetchEqCpuStatus(eqIds);
             for (EqCpu eqCpu : eqCpus) {
@@ -48,13 +48,13 @@ public class CpuWatcher extends UntypedActor {
                     }
                 }
             }
+            log.info("==== cpuWatcher done!!!");
         }
     }
 
     public String findEqModelCode(String eqId) {
         Session session = HibernateUtils.getSessionFactory().openSession();
         EqInfo eqInfo = session.get(EqInfo.class, eqId);
-        log.info("{}", eqInfo);
         return eqInfo.getEqModel().getModelCode();
     }
 
@@ -66,7 +66,6 @@ public class CpuWatcher extends UntypedActor {
         List<CompModelEvent> thresholdList = session.createCriteria(CompModelEvent.class)
                 .add(Restrictions.eq("eventCode", CPU_EVENT_CODE))
                 .list();
-        log.info("thresholdList {}", thresholdList);
         return thresholdList;
     }
 
@@ -100,11 +99,11 @@ public class CpuWatcher extends UntypedActor {
     }
 
     public boolean detectCpuObstacle(Double cpuUsage, int cpuMinThresHold, int cpuMaxThresHold) {
-        log.info("cpuUsage {}", cpuUsage);
         return cpuUsage >= cpuMinThresHold && cpuUsage < cpuMaxThresHold;
     }
 
     public boolean insertEvent(String eqId, Double cpuUsage, String eventLvCode) {
+        log.info("==== {} desvice insert cpu obstacle event", eqId);
         Session session = HibernateUtils.getSessionFactory().openSession();
 
         EventLog eventLog = createCpuEventLog(eqId, cpuUsage, eventLvCode);

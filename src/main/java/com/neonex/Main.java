@@ -1,11 +1,12 @@
 package com.neonex;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
+import akka.actor.*;
 import com.neonex.message.StartMsg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.concurrent.duration.Duration;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author : 지순
@@ -18,9 +19,14 @@ public class Main {
     public static void main(String[] ar) {
 
         logger.info(">>>>>>>>>>>>>>> OBSTACLE_DAEMON START!!!");
-        ActorSystem actorSystem = ActorSystem.create("obstacle_daemon");
-        ActorRef daemon = actorSystem.actorOf(Props.create(DeviceActor.class), "deviceStatus");
-        daemon.tell(new StartMsg(), ActorRef.noSender());
+        ActorSystem system = ActorSystem.create("obstacle_daemon");
+        ActorRef daemon = system.actorOf(Props.create(DeviceActor.class), "deviceStatus");
+//        system.scheduler().schedule(Duration.Zero(), Duration.create(60, TimeUnit.MILLISECONDS), daemon, "Tick", system.dispatcher());
+
+        system.scheduler().schedule(Duration.Zero(), Duration.create(60, TimeUnit.SECONDS), daemon, new StartMsg(), system.dispatcher(), null);
+
+//This cancels further Ticks to be sent
+//        cancellable.cancel();
     }
 
 }
