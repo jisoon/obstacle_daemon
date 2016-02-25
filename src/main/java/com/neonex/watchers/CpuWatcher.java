@@ -31,7 +31,7 @@ public class CpuWatcher extends UntypedActor {
 
     @Override
     public void onReceive(Object message) throws Exception {
-        log.info("==== cpuWatcher message receive");
+        log.info("==== CpuWatcher message receive");
         if (message instanceof StartMsg) {
 
             Collection<String> eqIds = ((StartMsg) message).getEqIds();

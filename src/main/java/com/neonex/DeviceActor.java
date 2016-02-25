@@ -43,7 +43,7 @@ public class DeviceActor extends UntypedActor {
     @Override
     public void onReceive(Object message) throws Exception {
         if (message instanceof StartMsg) {
-            log.info("==== daemon message received!!! ====");
+            log.info("==== DeviceActor message received!!! ====");
             List<EqStatus> devices = fetchDevice();
 
             detectDisconnect(devices);
