@@ -6,8 +6,8 @@ version = '1.0'
 
 description = "NESThing 장애 관제 데몬"
 
-sourceCompatibility = 1.5
-targetCompatibility = 1.5
+sourceCompatibility = 1.6
+targetCompatibility = 1.6
 
 repositories {
         

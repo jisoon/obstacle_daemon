@@ -59,6 +59,10 @@ public class CpuWatcher extends UntypedActor {
     }
 
 
+    /**
+     * CPU 임계치 정보 조회
+     * @return
+     */
     @SuppressWarnings("unchecked")
     public List<CompModelEvent> fetchCpuThresHold() {
 
@@ -69,6 +73,11 @@ public class CpuWatcher extends UntypedActor {
         return thresholdList;
     }
 
+    /**
+     * CPU 상태 정보 조회
+     * @param eqIdList
+     * @return
+     */
     @SuppressWarnings("unchecked")
     public List<EqCpu> fetchEqCpuStatus(Collection<String> eqIdList) {
 
@@ -98,10 +107,23 @@ public class CpuWatcher extends UntypedActor {
 
     }
 
+    /**
+     * CPU 장애 감지
+     * @param cpuUsage
+     * @param cpuMinThresHold
+     * @param cpuMaxThresHold
+     * @return
+     */
     public boolean detectCpuObstacle(Double cpuUsage, int cpuMinThresHold, int cpuMaxThresHold) {
         return cpuUsage >= cpuMinThresHold && cpuUsage < cpuMaxThresHold;
     }
 
+    /**
+     * CPU 장애 이벤트 추가     * @param eqId
+     * @param cpuUsage
+     * @param eventLvCode
+     * @return
+     */
     public boolean insertEvent(String eqId, Double cpuUsage, String eventLvCode) {
         log.info("==== {} desvice insert cpu obstacle event", eqId);
         Session session = HibernateUtils.getSessionFactory().openSession();
@@ -109,6 +131,9 @@ public class CpuWatcher extends UntypedActor {
         EventLog eventLog = createCpuEventLog(eqId, cpuUsage, eventLvCode);
         eventLog.setEventSeq(getEventSeq(session));
         try {
+            // 이미 있는 CPU 장애 라면
+            // 등급이 다른 경우 이전 등급은 처리 하고 새로 등급 insert
+            // 등급이 같은 경우 Skip
             session.getTransaction().begin();
             session.save(eventLog);
             session.getTransaction().commit();
@@ -142,5 +167,9 @@ public class CpuWatcher extends UntypedActor {
     private String currentTime() {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA);
         return formatter.format(new Date());
+    }
+
+    public boolean hasCpuEvent(String testEqId) {
+        return false;
     }
 }

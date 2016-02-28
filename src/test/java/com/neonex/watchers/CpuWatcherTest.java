@@ -192,6 +192,18 @@ public class CpuWatcherTest {
         log.info(eqModelCode);
         assertThat(eqModelCode).isNotNull();
         assertThat(eqModelCode).isNotEmpty();
+    }
 
+    @Test
+    public void testHasCpuEventInDb() {
+        // given
+        String testEqId = "1";
+        cpuWatcher.insertEvent(testEqId, new Double(90), "INFO");
+
+        // when
+        boolean hasCpuEvent = cpuWatcher.hasCpuEvent(testEqId);
+
+        //then
+        assertThat(hasCpuEvent).isTrue();
     }
 }
