@@ -3,7 +3,9 @@ package com.neonex.libaray.test;
 import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import junit.framework.TestCase;
 import lombok.extern.slf4j.Slf4j;
 import org.fest.util.Strings;
@@ -11,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import static org.fest.assertions.api.Assertions.assertThat;
@@ -96,6 +99,17 @@ public class GuavaTest extends TestCase {
         log.info("{}", filterStrings);
 
         assertThat(filterStrings).hasSize(1);
+    }
+
+    @Test
+    public void testMultiMap() throws Exception {
+        Multimap<String, Integer> scores = HashMultimap.create();
+        scores.put("Bob", 10);
+        scores.put("Bob", 20);
+        scores.put("Bob", 15);
+        System.out.println(Collections.max(scores.get("Bob")));
+        System.out.println(Collections.min(scores.get("Bob")));
+        log.info("{}", scores.get("Bob"));
     }
 
 

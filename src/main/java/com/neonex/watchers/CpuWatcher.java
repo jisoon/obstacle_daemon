@@ -42,7 +42,10 @@ public class CpuWatcher extends UntypedActor {
                 for (CompModelEvent threshold : compModelEventList) {
                     String eqModelCode = findEqModelCode(eqCpu.getEqId());
                     if (Objects.equals(eqModelCode, threshold.getModelCode())) {
-                        if (detectCpuObstacle(eqCpu.getCpuUsage(), threshold.getMinValue(), threshold.getMaxValue())) {
+                        boolean isCpuObstacleEvent = detectCpuObstacle(eqCpu.getCpuUsage(), threshold.getMinValue(), threshold.getMaxValue());
+                        if (isCpuObstacleEvent) {
+                            // 이미 기존 이벤트가 있다면 기존 이벤트를 처리 하고 새로 등록
+                            // 또한 기존 이벤트와 같은 등급이라면 발생 시간 update
                             insertEvent(eqCpu.getEqId(), eqCpu.getCpuUsage(), threshold.getEventLvCode());
                         }
                     }
