@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration>
+<configuration scan="true" scanPeriod="10 seconds">
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <!--
         <layout class="ch.qos.logback.classic.PatternLayout">
@@ -28,27 +28,23 @@
 
     <!-- 실행 sql 출력 -->
     <logger name="org.hibernate.SQL" level="ERROR" additivity="false">
-        <appender-ref ref="STDOUT"/>
     </logger>
 
     <!-- parameter 바인딩 로그 출력 -->
     <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="ERROR" additivity="false">
-        <appender-ref ref="STDOUT"/>
     </logger>
 
     <!-- parameter 바인딩 로그 출력 -->
     <logger name="org.hibernate.orm.connections" level="ERROR" additivity="false">
-        <appender-ref ref="STDOUT"/>
     </logger>
 
     <!-- 객체에 맵핑되는 로그 필요 없는듯 -->
     <logger name="org.hibernate.type.BasicTypeRegistry" level="ERROR" additivity="false">
-        <appender-ref ref="STDOUT"/>
     </logger>
 
-    <logger name="com.neonex" level="INFO"/>
+    <logger name="com.neonex" level="INFO" additivity="false"/>
 
     <root level="WARN">
-        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="ROLING"/>
     </root>
 </configuration>
