@@ -72,7 +72,7 @@ public class CpuWatcherTest {
         eqCpu.setCpuMaker("INTEL");
         eqCpu.setCpuModel("I5-3230M");
         eqCpu.setCoreNum("1");
-        eqCpu.setCpuUsage(90);
+        eqCpu.setCpuUsage(50);
 
         sessionFactory = HibernateUtils.getSessionFactory();
         session = sessionFactory.openSession();
@@ -174,7 +174,7 @@ public class CpuWatcherTest {
         eqCpu.setEqId("1");
 
         // when
-        boolean inserted = cpuWatcher.insertEvent("1", Double.valueOf(80), CRITICAL);
+        boolean inserted = cpuWatcher.insertCpuEvent("1", Double.valueOf(80), CRITICAL);
 
         // then
         assertThat(inserted).isTrue();
@@ -195,15 +195,30 @@ public class CpuWatcherTest {
     }
 
     @Test
-    public void testHasCpuEventInDb() {
+    public void testHasEqualsCpuEventLevel() {
         // given
         String testEqId = "1";
-        cpuWatcher.insertEvent(testEqId, new Double(90), "INFO");
+        cpuWatcher.insertCpuEvent(testEqId, new Double(90), "INFO");
 
         // when
-        boolean hasCpuEvent = cpuWatcher.hasCpuEvent(testEqId);
+        boolean hasCpuEvent = cpuWatcher.hasEqualsCpuEventLevel(testEqId, "INFO");
 
         //then
         assertThat(hasCpuEvent).isTrue();
     }
+
+    @Test
+    public void testinitCpuEventByMsgUpdateEventLevel() {
+        // given
+        String testEqId = "1";
+
+        //when
+        cpuWatcher.initCpuEventByMsgUpdateEventLevel(testEqId);
+
+        //then
+        boolean hasCpuEventCode = cpuWatcher.hasEqualsCpuEventLevel(testEqId, "INFO");
+        assertThat(hasCpuEventCode).isFalse();
+
+    }
+
 }

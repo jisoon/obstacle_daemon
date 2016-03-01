@@ -16,6 +16,7 @@ import org.hibernate.transform.Transformers;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.List;
 
 
 /**
@@ -41,15 +42,43 @@ public class CpuWatcher extends UntypedActor {
             for (EqCpu eqCpu : eqCpus) {
                 for (CompModelEvent threshold : compModelEventList) {
                     String eqModelCode = findEqModelCode(eqCpu.getEqId());
+                    // 해당 모델 코드의 임계치인지 검
                     if (Objects.equals(eqModelCode, threshold.getModelCode())) {
+
+                        // 임계치 범위 사이에 cpu 사용률이 존재 한다면
                         if (detectCpuObstacle(eqCpu.getCpuUsage(), threshold.getMinValue(), threshold.getMaxValue())) {
-                            insertEvent(eqCpu.getEqId(), eqCpu.getCpuUsage(), threshold.getEventLvCode());
+
+                            // 이미 같은 레벨이 장애가 있다면 skip
+                            if (hasEqualsCpuEventLevel(eqCpu.getEqId(), threshold.getEventLvCode())) {
+                                // skip
+                            }else{
+                                // 기존 이벤트를 처리 완료 하고 새로운 이벤트 등록
+                                initCpuEventByMsgUpdateEventLevel(eqCpu.getEqId());
+                                insertCpuEvent(eqCpu.getEqId(), eqCpu.getCpuUsage(), threshold.getEventLvCode());
+                            }
                         }
                     }
                 }
             }
             log.info("==== cpuWatcher done!!!");
         }
+    }
+
+    public void initCpuEventByMsgUpdateEventLevel(String eqId) {
+        Session session = HibernateUtils.getSessionFactory().openSession();
+        session.getTransaction().begin();
+        Query query = session.createSQLQuery(
+                "update EQ_EVENT_LOG " +
+                        "set PROCESS_YN = 'Y', PROCESS_CONT = :processCont " +
+                        "where EQ_ID = :eqId " +
+                        "and EVENT_CODE = :eventCode"
+        );
+        query.setParameter("eqId", eqId);
+        query.setParameter("eventCode", CPU_EVENT_CODE);
+        query.setParameter("processCont", "등급 변경");
+        query.executeUpdate();
+        session.getTransaction().commit();
+        session.close();
     }
 
     public String findEqModelCode(String eqId) {
@@ -124,7 +153,7 @@ public class CpuWatcher extends UntypedActor {
      * @param eventLvCode
      * @return
      */
-    public boolean insertEvent(String eqId, Double cpuUsage, String eventLvCode) {
+    public boolean insertCpuEvent(String eqId, Double cpuUsage, String eventLvCode) {
         log.info("==== {} desvice insert cpu obstacle event", eqId);
         Session session = HibernateUtils.getSessionFactory().openSession();
 
@@ -169,7 +198,15 @@ public class CpuWatcher extends UntypedActor {
         return formatter.format(new Date());
     }
 
-    public boolean hasCpuEvent(String testEqId) {
-        return false;
+    public boolean hasEqualsCpuEventLevel(String testEqId, String eventLevelCode) {
+        Session session = HibernateUtils.getSessionFactory().openSession();
+        List<EventLog> eventLogs = session.createCriteria(EventLog.class)
+                .add(Restrictions.eq("eqId", testEqId))
+                .add(Restrictions.eq("eventCode", CPU_EVENT_CODE))
+                .add(Restrictions.eq("eventLevelCode", eventLevelCode))
+                .add(Restrictions.eq("processYn", "N"))
+                .list();
+        session.close();
+        return eventLogs.size() > 0;
     }
 }
