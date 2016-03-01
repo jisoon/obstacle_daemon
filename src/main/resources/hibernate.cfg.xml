@@ -6,7 +6,7 @@
     <session-factory>
         <property name="hibernate.dialect">org.hibernate.dialect.Oracle10gDialect</property>
         <property name="hibernate.connection.driver_class">oracle.jdbc.driver.OracleDriver</property>
-        <property name="hibernate.connection.url">jdbc:oracle:thin:@106.248.228.114:1521/neonex</property>
+        <property name="hibernate.connection.url">jdbc:oracle:thin:@192.168.1.114:1521/neonex</property>
         <property name="hibernate.connection.username">tcuser</property>
         <property name="hibernate.connection.password">tcpass</property>
         <!-- hibernate 자체 SQL 출력을 못하도록 -->
