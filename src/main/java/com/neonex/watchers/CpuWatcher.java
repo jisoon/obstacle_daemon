@@ -44,7 +44,6 @@ public class CpuWatcher extends UntypedActor {
                     String eqModelCode = findEqModelCode(eqCpu.getEqId());
                     // 해당 모델 코드의 임계치인지 검
                     if (Objects.equals(eqModelCode, threshold.getModelCode())) {
-
                         // 임계치 범위 사이에 cpu 사용률이 존재 한다면
                         if (detectCpuObstacle(eqCpu.getCpuUsage(), threshold.getMinValue(), threshold.getMaxValue())) {
 

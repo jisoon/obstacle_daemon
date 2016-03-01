@@ -1,39 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration>
+<configuration scan="true" scanPeriod="60 seconds">
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <!--
-        <layout class="ch.qos.logback.classic.PatternLayout">
-            <Pattern>%d{HH:mm} %-5level %logger{36} - %msg%n</Pattern>
-        </layout>
-        -->
+        <encoder>
+            <pattern>%-5level %d{HH:mm:ss} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <appender name="ROLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>obs_daemon.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- rollover daily -->
+            <fileNamePattern>./logs/obs_daemon-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <!-- or whenever the file size reaches 100MB -->
+                <maxFileSize>100MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
         <encoder>
             <pattern>%-5level %d{HH:mm:ss} - %msg%n</pattern>
         </encoder>
     </appender>
 
+
     <!-- 실행 sql 출력 -->
     <logger name="org.hibernate.SQL" level="ERROR" additivity="false">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="ROLING"/>
     </logger>
 
     <!-- parameter 바인딩 로그 출력 -->
     <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="ERROR" additivity="false">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="ROLING"/>
     </logger>
 
     <!-- parameter 바인딩 로그 출력 -->
     <logger name="org.hibernate.orm.connections" level="ERROR" additivity="false">
-        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="ROLING"/>
     </logger>
 
     <!-- 객체에 맵핑되는 로그 필요 없는듯 -->
     <logger name="org.hibernate.type.BasicTypeRegistry" level="ERROR" additivity="false">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="ROLING"/>
     </logger>
 
-    <logger name="com.neonex" level="INFO" />
+    <logger name="com.neonex" level="INFO" additivity="false">
+        <appender-ref ref="ROLING"/>
+    </logger>
 
-    <root level="WARN">
-        <appender-ref ref="STDOUT" />
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
     </root>
 </configuration>
