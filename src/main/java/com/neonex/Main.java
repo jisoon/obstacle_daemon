@@ -18,7 +18,7 @@ public class Main {
 
     public static void main(String[] ar) {
         logger.info(">>>>>>>>>>>>>>> OBSTACLE_DAEMON START!!!");
-        ActorSystem system = ActorSystem.create("obstacle_daemon");
+        ActorSystem system = ActorSystem.create("obstacle-daemon");
         ActorRef daemon = system.actorOf(Props.create(DeviceActor.class), "deviceStatus");
         system.scheduler().schedule(Duration.Zero(), Duration.create(60, TimeUnit.SECONDS), daemon, new StartMsg(), system.dispatcher(), null);
     }

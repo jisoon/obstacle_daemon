@@ -35,6 +35,7 @@ public class CpuWatcherTest {
 
     private CpuWatcher cpuWatcher;
     private TestActorRef<CpuWatcher> testActorRef;
+    private String testEqId;
 
     private ActorSystem system;
     private Props props;
@@ -48,14 +49,15 @@ public class CpuWatcherTest {
     @Before
     public void setUp() throws Exception {
 
-
+        testEqId = "1";
         system = ActorSystem.create();
         props = Props.create(CpuWatcher.class);
 
         testActorRef = TestActorRef.create(system, props, "DeviceActorTest");
         cpuWatcher = testActorRef.underlyingActor();
         eqIds = new ArrayList<String>();
-        eqIds.add("1");
+        eqIds.add(testEqId);
+
 
     }
 
@@ -195,28 +197,41 @@ public class CpuWatcherTest {
     }
 
     @Test
-    public void testHasEqualsCpuEventLevel() {
+    public void testNoHasEqualsCpuEventLevel() {
         // given
-        String testEqId = "1";
         cpuWatcher.insertCpuEvent(testEqId, new Double(90), "INFO");
 
         // when
-        boolean hasCpuEvent = cpuWatcher.hasEqualsCpuEventLevel(testEqId, "INFO");
+        boolean hasCpuEvent = cpuWatcher.noHasEqualsCpuEventLevel(testEqId, "INFO");
+
+        //then
+        assertThat(hasCpuEvent).isFalse();
+    }
+
+    @Test
+    public void testNoHasEqualsCpuEventLevelInDbEmpty() throws Exception {
+        // given
+        cpuWatcher.initCpuEventByMsgUpdateEventLevel(testEqId);
+
+        // when
+        boolean hasCpuEvent = cpuWatcher.noHasEqualsCpuEventLevel(testEqId, "INFO");
 
         //then
         assertThat(hasCpuEvent).isTrue();
+
     }
+
 
     @Test
     public void testinitCpuEventByMsgUpdateEventLevel() {
         // given
-        String testEqId = "1";
+
 
         //when
         cpuWatcher.initCpuEventByMsgUpdateEventLevel(testEqId);
 
         //then
-        boolean hasCpuEventCode = cpuWatcher.hasEqualsCpuEventLevel(testEqId, "INFO");
+        boolean hasCpuEventCode = cpuWatcher.noHasEqualsCpuEventLevel(testEqId, "INFO");
         assertThat(hasCpuEventCode).isFalse();
 
     }

@@ -2,10 +2,12 @@ package com.neonex.watchers;
 
 import akka.actor.UntypedActor;
 import com.neonex.message.StartMsg;
-import com.neonex.model.*;
+import com.neonex.model.CompModelEvent;
+import com.neonex.model.EqCpu;
+import com.neonex.model.EqInfo;
+import com.neonex.model.EventLog;
 import com.neonex.utils.HibernateUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
 import org.hibernate.Query;
 import org.hibernate.Session;
@@ -16,7 +18,6 @@ import org.hibernate.transform.Transformers;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.List;
 
 
 /**
@@ -42,13 +43,13 @@ public class CpuWatcher extends UntypedActor {
             for (EqCpu eqCpu : eqCpus) {
                 for (CompModelEvent threshold : compModelEventList) {
                     String eqModelCode = findEqModelCode(eqCpu.getEqId());
-                    // 해당 모델 코드의 임계치인지 검
+                    // 해당 모델 코드의 임계치인지 검사
                     if (Objects.equals(eqModelCode, threshold.getModelCode())) {
                         // 임계치 범위 사이에 cpu 사용률이 존재 한다면
                         if (detectCpuObstacle(eqCpu.getCpuUsage(), threshold.getMinValue(), threshold.getMaxValue())) {
 
                             // 이미 같은 레벨이 장애가 있다면 skip
-                            if (hasEqualsCpuEventLevel(eqCpu.getEqId(), threshold.getEventLvCode())) {
+                            if (noHasEqualsCpuEventLevel(eqCpu.getEqId(), threshold.getEventLvCode())) {
                                 // skip
                             }else{
                                 // 기존 이벤트를 처리 완료 하고 새로운 이벤트 등록
@@ -56,6 +57,7 @@ public class CpuWatcher extends UntypedActor {
                                 insertCpuEvent(eqCpu.getEqId(), eqCpu.getCpuUsage(), threshold.getEventLvCode());
                             }
                         }
+                        break;
                     }
                 }
             }
@@ -111,23 +113,11 @@ public class CpuWatcher extends UntypedActor {
 
         Session session = HibernateUtils.getSessionFactory().openSession();
 
-
-        Criteria crit = session.createCriteria(EqCpu.class);
-//        crit = crit.createCriteria("eqCpu", JoinType.LEFT_OUTER_JOIN);
-//                .setProjection(
-//                        Projections.projectionList()
-//                                .add(Projections.groupProperty("eqId").as("eqId"))
-//                                .add(Projections.avg("cpuUsage").as("cpuUsage"))
-//                )
-//                .add(Restrictions.in("eqId", eqIdList))
-//                .setResultTransformer(Transformers.aliasToBean(EqCpu.class));
-
-//        return crit.list();
-        return crit
+        return session.createCriteria(EqCpu.class)
                 .setProjection(
                         Projections.projectionList()
-                        .add(Projections.groupProperty("eqId").as("eqId"))
-                        .add(Projections.avg("cpuUsage").as("cpuUsage"))
+                                .add(Projections.groupProperty("eqId").as("eqId"))
+                                .add(Projections.avg("cpuUsage").as("cpuUsage"))
                 )
                 .add(Restrictions.in("eqId", eqIdList))
                 .setResultTransformer(Transformers.aliasToBean(EqCpu.class))
@@ -197,7 +187,7 @@ public class CpuWatcher extends UntypedActor {
         return formatter.format(new Date());
     }
 
-    public boolean hasEqualsCpuEventLevel(String testEqId, String eventLevelCode) {
+    public boolean noHasEqualsCpuEventLevel(String testEqId, String eventLevelCode) {
         Session session = HibernateUtils.getSessionFactory().openSession();
         List<EventLog> eventLogs = session.createCriteria(EventLog.class)
                 .add(Restrictions.eq("eqId", testEqId))
@@ -206,6 +196,7 @@ public class CpuWatcher extends UntypedActor {
                 .add(Restrictions.eq("processYn", "N"))
                 .list();
         session.close();
-        return eventLogs.size() > 0;
+        log.info("event log size {} ", eventLogs.size());
+        return eventLogs.size() == 0;
     }
 }

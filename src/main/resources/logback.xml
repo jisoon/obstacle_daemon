@@ -42,7 +42,7 @@
     </logger>
 
     <logger name="com.neonex" level="INFO" additivity="false">
-        <appender-ref ref="ROLING"/>
+        <appender-ref ref="STDOUT"/>
     </logger>
 
     <root level="INFO">
