@@ -1,9 +1,9 @@
-package com.neonex.watchers;
+package com.neonex.detector;
 
 import akka.actor.UntypedActor;
 import com.neonex.message.StartMsg;
 import com.neonex.model.EqStatus;
-import com.neonex.model.EventLog;
+import com.neonex.model.Event;
 import com.neonex.utils.HibernateUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Query;
@@ -23,14 +23,14 @@ import java.util.Locale;
  * @since : 2016-02-17
  */
 @Slf4j
-public class DisconnectWatcher extends UntypedActor {
+public class DisconnectEvenDetector extends UntypedActor {
 
     public static final String DICONNECT_EVENT_CODE = "CON0002";
     public static final String DISCONNECT_EVENT_CON = "미연결";
 
     @Override
     public void onReceive(Object message) throws Exception {
-        log.info("==== DisconnectWatcher message receive");
+        log.info("==== DisconnectEvenDetector message receive");
         if (message instanceof StartMsg) {
 
             // 장비 상태를 미연결로 변경
@@ -40,7 +40,7 @@ public class DisconnectWatcher extends UntypedActor {
             initObstalceEvent(eqIds);
             insertDisconnectEvent(eqIds);
 
-            log.info("==== DisconnectWatcher done!!!");
+            log.info("==== DisconnectEvenDetector done!!!");
         }
     }
 
@@ -71,11 +71,11 @@ public class DisconnectWatcher extends UntypedActor {
         session.getTransaction().begin();
         try {
             for (String eqId : eqIds) {
-                EventLog eventLog = new EventLog();
-                eventLog.setEqId(eqId);
-                eventLog.setProcessDate(currentTime());
-                eventLog.setProcessYn("Y");
-                eventLog.setProcessCont("장비 미연결로 인한 이벤트 초기화");
+                Event event = new Event();
+                event.setEqId(eqId);
+                event.setProcessDate(currentTime());
+                event.setProcessYn("Y");
+                event.setProcessCont("장비 미연결로 인한 이벤트 초기화");
 
 
                 Query query = session.createSQLQuery(
@@ -122,16 +122,16 @@ public class DisconnectWatcher extends UntypedActor {
     public void insertDisconnectEventLog(String eqId) {
         Session session = HibernateUtils.getSessionFactory().openSession();
 
-        EventLog eventLog = new EventLog();
-        eventLog.setEqId(eqId);
-        eventLog.setEventCode(DICONNECT_EVENT_CODE);
-        eventLog.setEventCont(DISCONNECT_EVENT_CON);
-        eventLog.setEventLevelCode("CRITICAL");
-        eventLog.setProcessYn("N");
-        eventLog.setOccurDate(currentTime());
-        eventLog.setEventSeq(getEventSeq(session));
+        Event event = new Event();
+        event.setEqId(eqId);
+        event.setEventCode(DICONNECT_EVENT_CODE);
+        event.setEventCont(DISCONNECT_EVENT_CON);
+        event.setEventLevelCode("CRITICAL");
+        event.setProcessYn("N");
+        event.setOccurDate(currentTime());
+        event.setEventSeq(getEventSeq(session));
         try {
-            session.save(eventLog);
+            session.save(event);
         } catch (Exception e) {
             log.error("insert disconnect device error", e);
         }
@@ -152,7 +152,7 @@ public class DisconnectWatcher extends UntypedActor {
     public boolean hasNoDisconnectionEvent(String eqId) {
         Session session = HibernateUtils.getSessionFactory().openSession();
 
-        List<EventLog> disconnEvent = session.createCriteria(EventLog.class)
+        List<Event> disconnEvent = session.createCriteria(Event.class)
                 .add(Restrictions.eq("eqId", eqId))
                 .add(Restrictions.eq("processYn", "N"))
                 .add(Restrictions.eq("eventCode", "CON0002")).list();

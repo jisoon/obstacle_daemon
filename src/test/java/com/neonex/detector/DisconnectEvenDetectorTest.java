@@ -1,4 +1,4 @@
-package com.neonex.watchers;
+package com.neonex.detector;
 
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -23,10 +23,10 @@ import static org.fest.assertions.api.Assertions.assertThat;
  * @since : 2016-02-25
  */
 @Slf4j
-public class DisconnectWatcherTest {
+public class DisconnectEvenDetectorTest {
 
-    private DisconnectWatcher disconnectWatcher;
-    private TestActorRef<DisconnectWatcher> testDisconnectWatcher;
+    private DisconnectEvenDetector disconnectEvenDetector;
+    private TestActorRef<DisconnectEvenDetector> testDisconnectWatcher;
 
     private ActorSystem system;
     private Props props;
@@ -39,10 +39,10 @@ public class DisconnectWatcherTest {
 
 
         system = ActorSystem.create();
-        props = Props.create(DisconnectWatcher.class);
+        props = Props.create(DisconnectEvenDetector.class);
 
         testDisconnectWatcher = TestActorRef.create(system, props, "TestDisconnectWatcher");
-        disconnectWatcher = testDisconnectWatcher.underlyingActor();
+        disconnectEvenDetector = testDisconnectWatcher.underlyingActor();
         eqIds = new ArrayList<String>();
         eqIds.add("1");
         eqIds.add("2");
@@ -61,7 +61,7 @@ public class DisconnectWatcherTest {
 
 
         // when
-        disconnectWatcher.updateStatusDisconnect(eqIds);
+        disconnectEvenDetector.updateStatusDisconnect(eqIds);
 
         // then
 
@@ -72,7 +72,7 @@ public class DisconnectWatcherTest {
 
 
         // when
-        disconnectWatcher.insertDisconnectEvent(eqIds);
+        disconnectEvenDetector.insertDisconnectEvent(eqIds);
 
     }
 
@@ -80,7 +80,7 @@ public class DisconnectWatcherTest {
     public void testInitObstalceEvent() throws Exception {
 
         // when
-        disconnectWatcher.initObstalceEvent(eqIds);
+        disconnectEvenDetector.initObstalceEvent(eqIds);
 
         // then
 
@@ -91,10 +91,10 @@ public class DisconnectWatcherTest {
     public void testHasDisConnectionEvent() throws Exception {
 
         // given
-        disconnectWatcher.insertDisconnectEvent(eqIds);
+        disconnectEvenDetector.insertDisconnectEvent(eqIds);
 
         // when
-        boolean hasNoDisconnectionEvent = disconnectWatcher.hasNoDisconnectionEvent("1");
+        boolean hasNoDisconnectionEvent = disconnectEvenDetector.hasNoDisconnectionEvent("1");
 
         // then
         assertThat(hasNoDisconnectionEvent).isFalse();

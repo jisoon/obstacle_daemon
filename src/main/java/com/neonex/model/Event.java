@@ -15,9 +15,10 @@ import javax.persistence.*;
 @Entity
 @Table(name="EQ_EVENT_LOG")
 @SequenceGenerator(name="eventLogSeqGenerator", sequenceName="SQNT_EQ_EVENT_LOG_SEQ")
-public class EventLog {
+public class Event {
+
     @Id
-    @Column(name="EVENT_SEQ")
+    @Column(name = "EVENT_SEQ")
     private Long eventSeq;
 
     @Column(name="EQ_ID")

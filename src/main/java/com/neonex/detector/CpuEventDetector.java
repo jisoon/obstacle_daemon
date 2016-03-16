@@ -1,11 +1,13 @@
-package com.neonex.watchers;
+package com.neonex.detector;
 
 import akka.actor.UntypedActor;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.neonex.message.StartMsg;
 import com.neonex.model.CompModelEvent;
 import com.neonex.model.EqCpu;
 import com.neonex.model.EqInfo;
-import com.neonex.model.EventLog;
+import com.neonex.model.Event;
 import com.neonex.utils.HibernateUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.HibernateException;
@@ -26,44 +28,52 @@ import java.util.*;
  * @since : 2016-02-17
  */
 @Slf4j
-public class CpuWatcher extends UntypedActor {
+public class CpuEventDetector extends UntypedActor {
 
 
     public static final String CPU_EVENT_CODE = "RES0001";
 
+    /**
+     * Actor message recive
+     *
+     * @param message
+     * @throws Exception
+     */
     @Override
     public void onReceive(Object message) throws Exception {
-        log.info("==== CpuWatcher message receive");
         if (message instanceof StartMsg) {
-
-            Collection<String> eqIds = ((StartMsg) message).getEqIds();
-
-            List<CompModelEvent> compModelEventList = fetchCpuThresHold();
-            List<EqCpu> eqCpus = fetchEqCpuStatus(eqIds);
-            for (EqCpu eqCpu : eqCpus) {
-                for (CompModelEvent threshold : compModelEventList) {
-                    String eqModelCode = findEqModelCode(eqCpu.getEqId());
-                    // 해당 모델 코드의 임계치인지 검사
-                    if (Objects.equals(eqModelCode, threshold.getModelCode())) {
-                        // 임계치 범위 사이에 cpu 사용률이 존재 한다면
-                        if (detectCpuObstacle(eqCpu.getCpuUsage(), threshold.getMinValue(), threshold.getMaxValue())) {
-
-                            // 이미 같은 레벨이 장애가 있다면 skip
-                            if (noHasEqualsCpuEventLevel(eqCpu.getEqId(), threshold.getEventLvCode())) {
-                                // skip
-                            }else{
-                                // 기존 이벤트를 처리 완료 하고 새로운 이벤트 등록
-                                initCpuEventByMsgUpdateEventLevel(eqCpu.getEqId());
-                                insertCpuEvent(eqCpu.getEqId(), eqCpu.getCpuUsage(), threshold.getEventLvCode());
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-            log.info("==== cpuWatcher done!!!");
+            processCpuWatcher(((StartMsg) message).getEqIds());
         }
     }
+
+    /**
+     * 해당 장비에 대한 모델 코드를 조회 한다.
+     * 모델 코드별로 설정된 임계치 정보를 조회 한다.
+     * 해당 모델 코드의 임계치 정보와 장비의 CPU 임계치 정보를 비교 한다.
+     * 해당 장비가 임계치를 초과 하였다면
+     * 장애 이벤트를 insert 하는데 기존에 같은 등급의 장애가 존재 한다면 Skip
+     *
+     * @param eqIds
+     */
+    public void processCpuWatcher(final Collection<String> eqIds) {
+        List<CompModelEvent> deviceModelThresHold = fetchCpuThresHold();
+        final List<EqCpu> eqCpuStatus = findCpuStatusBy(eqIds);
+        for (EqCpu eqCpu : eqCpuStatus) {
+            final String eqModelCode = findEqModelCode(eqCpu.getEqId());
+            final CompModelEvent threshold = findThresholdByModelCode(deviceModelThresHold, eqModelCode);
+
+            // 임계치 범위 사이에 cpu 사용률이 존재 한다면
+            if (isCpuUsageObstacle(eqCpu.getCpuUsage(), threshold)) {
+                if (noHasEqualsCpuEventLevel(eqCpu.getEqId(), threshold.getEventLvCode())) {
+                    // 기존 이벤트를 처리 완료 하고 새로운 이벤트 등록
+                    initCpuEventByMsgUpdateEventLevel(eqCpu.getEqId());
+                    insertCpuEvent(eqCpu.getEqId(), eqCpu.getCpuUsage(), threshold.getEventLvCode());
+                }
+            }
+        }
+    }
+
+
 
     public void initCpuEventByMsgUpdateEventLevel(String eqId) {
         Session session = HibernateUtils.getSessionFactory().openSession();
@@ -109,7 +119,7 @@ public class CpuWatcher extends UntypedActor {
      * @return
      */
     @SuppressWarnings("unchecked")
-    public List<EqCpu> fetchEqCpuStatus(Collection<String> eqIdList) {
+    public List<EqCpu> findCpuStatusBy(Collection<String> eqIdList) {
 
         Session session = HibernateUtils.getSessionFactory().openSession();
 
@@ -128,12 +138,11 @@ public class CpuWatcher extends UntypedActor {
     /**
      * CPU 장애 감지
      * @param cpuUsage
-     * @param cpuMinThresHold
-     * @param cpuMaxThresHold
+     * @param threshold
      * @return
      */
-    public boolean detectCpuObstacle(Double cpuUsage, int cpuMinThresHold, int cpuMaxThresHold) {
-        return cpuUsage >= cpuMinThresHold && cpuUsage < cpuMaxThresHold;
+    public boolean isCpuUsageObstacle(Double cpuUsage, CompModelEvent threshold) {
+        return cpuUsage >= threshold.getMinValue() && cpuUsage < threshold.getMaxValue();
     }
 
     /**
@@ -146,14 +155,14 @@ public class CpuWatcher extends UntypedActor {
         log.info("==== {} desvice insert cpu obstacle event", eqId);
         Session session = HibernateUtils.getSessionFactory().openSession();
 
-        EventLog eventLog = createCpuEventLog(eqId, cpuUsage, eventLvCode);
-        eventLog.setEventSeq(getEventSeq(session));
+        Event event = createCpuEventLog(eqId, cpuUsage, eventLvCode);
+        event.setEventSeq(getEventSeq(session));
         try {
             // 이미 있는 CPU 장애 라면
             // 등급이 다른 경우 이전 등급은 처리 하고 새로 등급 insert
             // 등급이 같은 경우 Skip
             session.getTransaction().begin();
-            session.save(eventLog);
+            session.save(event);
             session.getTransaction().commit();
             return true;
         } catch (HibernateException e) {
@@ -165,15 +174,15 @@ public class CpuWatcher extends UntypedActor {
         }
     }
 
-    private EventLog createCpuEventLog(String eqId, Double cpuUsage, String eventLvCode) {
-        EventLog eventLog = new EventLog();
-        eventLog.setEqId(eqId);
-        eventLog.setEventCode(CPU_EVENT_CODE);
-        eventLog.setEventCont("CPU 사용률 " + cpuUsage + "%");
-        eventLog.setEventLevelCode(eventLvCode);
-        eventLog.setProcessYn("N");
-        eventLog.setOccurDate(currentTime());
-        return eventLog;
+    private Event createCpuEventLog(String eqId, Double cpuUsage, String eventLvCode) {
+        Event event = new Event();
+        event.setEqId(eqId);
+        event.setEventCode(CPU_EVENT_CODE);
+        event.setEventCont("CPU 사용률 " + cpuUsage + "%");
+        event.setEventLevelCode(eventLvCode);
+        event.setProcessYn("N");
+        event.setOccurDate(currentTime());
+        return event;
     }
 
     @SuppressWarnings("SqlDialectInspection")
@@ -189,14 +198,22 @@ public class CpuWatcher extends UntypedActor {
 
     public boolean noHasEqualsCpuEventLevel(String testEqId, String eventLevelCode) {
         Session session = HibernateUtils.getSessionFactory().openSession();
-        List<EventLog> eventLogs = session.createCriteria(EventLog.class)
+        List<Event> events = session.createCriteria(Event.class)
                 .add(Restrictions.eq("eqId", testEqId))
                 .add(Restrictions.eq("eventCode", CPU_EVENT_CODE))
                 .add(Restrictions.eq("eventLevelCode", eventLevelCode))
                 .add(Restrictions.eq("processYn", "N"))
                 .list();
         session.close();
-        log.info("event log size {} ", eventLogs.size());
-        return eventLogs.size() == 0;
+        log.info("event log size {} ", events.size());
+        return events.size() == 0;
+    }
+
+    private CompModelEvent findThresholdByModelCode(List<CompModelEvent> deviceModelThresHold, final String eqModelCode) {
+        return Iterables.find(deviceModelThresHold, new Predicate<CompModelEvent>() {
+            public boolean apply(CompModelEvent threHold) {
+                return threHold.getModelCode().equals(eqModelCode);
+            }
+        });
     }
 }

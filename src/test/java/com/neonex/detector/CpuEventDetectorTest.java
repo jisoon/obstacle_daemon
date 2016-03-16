@@ -1,4 +1,4 @@
-package com.neonex.watchers;
+package com.neonex.detector;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -31,10 +31,10 @@ import static org.fest.assertions.api.Assertions.fail;
  * @since : 2016-02-23
  */
 @Slf4j
-public class CpuWatcherTest {
+public class CpuEventDetectorTest {
 
-    private CpuWatcher cpuWatcher;
-    private TestActorRef<CpuWatcher> testActorRef;
+    private CpuEventDetector cpuEventDetector;
+    private TestActorRef<CpuEventDetector> testActorRef;
     private String testEqId;
 
     private ActorSystem system;
@@ -51,10 +51,10 @@ public class CpuWatcherTest {
 
         testEqId = "1";
         system = ActorSystem.create();
-        props = Props.create(CpuWatcher.class);
+        props = Props.create(CpuEventDetector.class);
 
         testActorRef = TestActorRef.create(system, props, "DeviceActorTest");
-        cpuWatcher = testActorRef.underlyingActor();
+        cpuEventDetector = testActorRef.underlyingActor();
         eqIds = new ArrayList<String>();
         eqIds.add(testEqId);
 
@@ -78,17 +78,15 @@ public class CpuWatcherTest {
 
         sessionFactory = HibernateUtils.getSessionFactory();
         session = sessionFactory.openSession();
-
         session.getTransaction().begin();
         session.update(eqCpu);
         session.getTransaction().commit();
-
         session.close();
 
 
         try {
-            final Props props = Props.create(CpuWatcher.class);
-            final TestActorRef<CpuWatcher> testRef = TestActorRef.create(system, props, "testCpuWatcher");
+            final Props props = Props.create(CpuEventDetector.class);
+            final TestActorRef<CpuEventDetector> testRef = TestActorRef.create(system, props, "testCpuWatcher");
             StartMsg startMsg = new StartMsg(eqIds);
             testRef.tell(startMsg, ActorRef.noSender());
         } catch (Exception e) {
@@ -102,7 +100,7 @@ public class CpuWatcherTest {
         // given
 
         // when
-        List<CompModelEvent> modelEventList = cpuWatcher.fetchCpuThresHold();
+        List<CompModelEvent> modelEventList = cpuEventDetector.fetchCpuThresHold();
 
         // then
         assertThat(modelEventList).isNotEmpty();
@@ -110,7 +108,18 @@ public class CpuWatcherTest {
     }
 
     @Test
-    public void testFetchEqCpuStatus() throws Exception {
+    public void thresholdMinMax() throws Exception {
+        // given
+
+        // when
+        List<CompModelEvent> modelEventList = cpuEventDetector.fetchCpuThresHold();
+
+        // then
+
+    }
+
+    @Test
+    public void findEqCpuStatusByEqid() throws Exception {
         // given
         EqStatus eqStatus = new EqStatus();
         eqStatus.setEqId("1");
@@ -119,15 +128,11 @@ public class CpuWatcherTest {
         eqIdList.add("1");
 
         // when
-        List<EqCpu> eqCpuStats = cpuWatcher.fetchEqCpuStatus(eqIdList);
+        List<EqCpu> eqCpuStats = cpuEventDetector.findCpuStatusBy(eqIdList);
 
         // then
-        log.info("{}", eqCpuStats);
-        assertThat(eqCpuStats).isNotEmpty();
         assertThat(eqCpuStats).hasSize(1);
-        assertThat(eqCpuStats.get(0).getCpuUsage()).isNotZero();
     }
-
 
     /**
      * 현재 CPU 상태로 임계치를 초과지 확인
@@ -137,34 +142,28 @@ public class CpuWatcherTest {
     @Test
     public void testDetectCpuObstacle() throws Exception {
         // given
-        EqCpu eqCpu = new EqCpu();
-        int cpuMaxThresHold = 90;
-        int cpuMinThresHold = 10;
+        CompModelEvent threshold = new CompModelEvent();
+        threshold.setMaxValue(90);
+        threshold.setMinValue(10);
 
-        boolean isOccurEvent = false;
+        boolean isOccurEvent;
 
-        eqCpu.setCpuUsage(90);
-        isOccurEvent = cpuWatcher.detectCpuObstacle(eqCpu.getCpuUsage(), cpuMinThresHold, cpuMaxThresHold);
+        isOccurEvent = cpuEventDetector.isCpuUsageObstacle(90D, threshold);
         assertThat(isOccurEvent).isFalse();
 
-        eqCpu.setCpuUsage(91);
-        isOccurEvent = cpuWatcher.detectCpuObstacle(eqCpu.getCpuUsage(), cpuMinThresHold, cpuMaxThresHold);
+        isOccurEvent = cpuEventDetector.isCpuUsageObstacle(91D, threshold);
         assertThat(isOccurEvent).isFalse();
 
-        eqCpu.setCpuUsage(89);
-        isOccurEvent = cpuWatcher.detectCpuObstacle(eqCpu.getCpuUsage(), cpuMinThresHold, cpuMaxThresHold);
+        isOccurEvent = cpuEventDetector.isCpuUsageObstacle(89D, threshold);
         assertThat(isOccurEvent).isTrue();
 
-        eqCpu.setCpuUsage(9);
-        isOccurEvent = cpuWatcher.detectCpuObstacle(eqCpu.getCpuUsage(), cpuMinThresHold, cpuMaxThresHold);
+        isOccurEvent = cpuEventDetector.isCpuUsageObstacle(9D, threshold);
         assertThat(isOccurEvent).isFalse();
 
-        eqCpu.setCpuUsage(10);
-        isOccurEvent = cpuWatcher.detectCpuObstacle(eqCpu.getCpuUsage(), cpuMinThresHold, cpuMaxThresHold);
+        isOccurEvent = cpuEventDetector.isCpuUsageObstacle(10D, threshold);
         assertThat(isOccurEvent).isTrue();
 
-        eqCpu.setCpuUsage(11);
-        isOccurEvent = cpuWatcher.detectCpuObstacle(eqCpu.getCpuUsage(), cpuMinThresHold, cpuMaxThresHold);
+        isOccurEvent = cpuEventDetector.isCpuUsageObstacle(11D, threshold);
         assertThat(isOccurEvent).isTrue();
 
     }
@@ -176,7 +175,7 @@ public class CpuWatcherTest {
         eqCpu.setEqId("1");
 
         // when
-        boolean inserted = cpuWatcher.insertCpuEvent("1", Double.valueOf(80), CRITICAL);
+        boolean inserted = cpuEventDetector.insertCpuEvent("1", Double.valueOf(80), CRITICAL);
 
         // then
         assertThat(inserted).isTrue();
@@ -188,21 +187,19 @@ public class CpuWatcherTest {
         // given
 
         // when
-        String eqModelCode = cpuWatcher.findEqModelCode("1");
+        String eqModelCode = cpuEventDetector.findEqModelCode("1");
 
         // then
-        log.info(eqModelCode);
-        assertThat(eqModelCode).isNotNull();
         assertThat(eqModelCode).isNotEmpty();
     }
 
     @Test
     public void testNoHasEqualsCpuEventLevel() {
         // given
-        cpuWatcher.insertCpuEvent(testEqId, new Double(90), "INFO");
+        cpuEventDetector.insertCpuEvent(testEqId, new Double(90), "INFO");
 
         // when
-        boolean hasCpuEvent = cpuWatcher.noHasEqualsCpuEventLevel(testEqId, "INFO");
+        boolean hasCpuEvent = cpuEventDetector.noHasEqualsCpuEventLevel(testEqId, "INFO");
 
         //then
         assertThat(hasCpuEvent).isFalse();
@@ -211,27 +208,25 @@ public class CpuWatcherTest {
     @Test
     public void testNoHasEqualsCpuEventLevelInDbEmpty() throws Exception {
         // given
-        cpuWatcher.initCpuEventByMsgUpdateEventLevel(testEqId);
+        cpuEventDetector.initCpuEventByMsgUpdateEventLevel(testEqId);
 
         // when
-        boolean hasCpuEvent = cpuWatcher.noHasEqualsCpuEventLevel(testEqId, "INFO");
+        boolean noHasCpuEvent = cpuEventDetector.noHasEqualsCpuEventLevel(testEqId, "INFO");
 
         //then
-        assertThat(hasCpuEvent).isTrue();
+        assertThat(noHasCpuEvent).isTrue();
 
     }
 
 
     @Test
     public void testinitCpuEventByMsgUpdateEventLevel() {
-        // given
-
 
         //when
-        cpuWatcher.initCpuEventByMsgUpdateEventLevel(testEqId);
+        cpuEventDetector.initCpuEventByMsgUpdateEventLevel(testEqId);
 
         //then
-        boolean hasCpuEventCode = cpuWatcher.noHasEqualsCpuEventLevel(testEqId, "INFO");
+        boolean hasCpuEventCode = cpuEventDetector.noHasEqualsCpuEventLevel(testEqId, "INFO");
         assertThat(hasCpuEventCode).isFalse();
 
     }

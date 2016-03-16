@@ -48,6 +48,7 @@
     <orderEntry type="library" name="Maven: ch.qos.logback:logback-classic:1.1.5" level="project" />
     <orderEntry type="library" name="Maven: ch.qos.logback:logback-core:1.1.5" level="project" />
     <orderEntry type="library" name="Maven: commons-lang:commons-lang:2.3" level="project" />
+    <orderEntry type="library" name="Maven: org.mockito:mockito-all:1.10.19" level="project" />
   </component>
   <component name="org.twodividedbyzero.idea.findbugs">
     <option name="_basePreferences">

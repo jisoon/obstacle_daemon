@@ -1,4 +1,4 @@
-package com.neonex.watchers;
+package com.neonex.detector;
 
 import akka.actor.UntypedActor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since : 2016-02-17
  */
 @Slf4j
-public class MemWatcher extends UntypedActor {
+public class MemoryEvenDetector extends UntypedActor {
     @Override
     public void onReceive(Object message) throws Exception {
 

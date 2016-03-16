@@ -8,13 +8,13 @@ import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
+import com.neonex.detector.CpuEventDetector;
+import com.neonex.detector.DisconnectEvenDetector;
 import com.neonex.message.StartMsg;
 import com.neonex.model.CompModelEvent;
 import com.neonex.model.EqStatus;
 import com.neonex.utils.HibernateUtils;
-import com.neonex.watchers.CpuWatcher;
-import com.neonex.watchers.DisconnectWatcher;
-import com.neonex.watchers.MemWatcher;
+import com.neonex.detector.MemoryEvenDetector;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
 import org.hibernate.criterion.Restrictions;
@@ -35,9 +35,9 @@ public class DeviceActor extends UntypedActor {
     private ActorRef disconnectWatcher;
 
     public DeviceActor() {
-        cpuWatcher = context().actorOf(Props.create(CpuWatcher.class), "cpuWatcher");
-        memWatcher = context().actorOf(Props.create(MemWatcher.class), "memWatcher");
-        disconnectWatcher = context().actorOf(Props.create(DisconnectWatcher.class), "disconnectWatcher");
+        cpuWatcher = context().actorOf(Props.create(CpuEventDetector.class), "cpuWatcher");
+        memWatcher = context().actorOf(Props.create(MemoryEvenDetector.class), "memWatcher");
+        disconnectWatcher = context().actorOf(Props.create(DisconnectEvenDetector.class), "disconnectWatcher");
     }
 
     @Override
