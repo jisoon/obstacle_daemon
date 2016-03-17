@@ -1,4 +1,4 @@
-package com.neonex.service;
+package com.neonex.dao;
 
 import com.neonex.model.Event;
 import com.neonex.utils.HibernateUtils;
@@ -9,6 +9,9 @@ import org.hibernate.Query;
 import org.hibernate.Session;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 /**
  * @author : 지순
@@ -16,8 +19,7 @@ import java.math.BigDecimal;
  * @since : 2016-03-16
  */
 @Slf4j
-public class EventService {
-
+public class EventDao {
     /**
      * event save
      *
@@ -25,9 +27,15 @@ public class EventService {
      * @return
      */
     public boolean save(Event event) {
+        setDefaultValue(event);
         if (invaildEventData(event)) return false;
         if (saveEvent(event)) return true;
         return true;
+    }
+
+    private void setDefaultValue(Event event) {
+        event.setProcessYn("N");
+        event.setOccurDate(currentTime());
     }
 
     private boolean saveEvent(Event event) {
@@ -51,9 +59,25 @@ public class EventService {
 
         if (StringUtils.isBlank(event.getEqId())) {
             log.error("eqId is blank");
-            return false;
+            return true;
         }
-        return true;
+        if (StringUtils.isBlank(event.getEventLevelCode())) {
+            log.error("eventLevelCode is blank");
+            return true;
+        }
+        if (StringUtils.isBlank(event.getEventCode())) {
+            log.error("eventCode is blank");
+            return true;
+        }
+        if (StringUtils.isBlank(event.getOccurDate())) {
+            log.error("occurDate is blank");
+            return true;
+        }
+        if (StringUtils.isBlank(event.getEventCont())) {
+            log.error("eventCont is blank");
+            return true;
+        }
+        return false;
     }
 
     private Long createEventSeq() {
@@ -62,5 +86,10 @@ public class EventService {
         long eventSeq = ((BigDecimal) query.uniqueResult()).longValue();
         session.close();
         return eventSeq;
+    }
+
+    private String currentTime() {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA);
+        return formatter.format(new Date());
     }
 }

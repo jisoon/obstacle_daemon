@@ -16,7 +16,7 @@ import javax.persistence.Table;
 @SuppressWarnings("JpaDataSourceORMInspection")
 @Entity
 @Table(name = "COMP_MODEL_EVENT")
-public class CompModelEvent {
+public class ThresHoldInfo {
 
     @Id
     @Column(name = "COMP_MODEL_EVENT_SEQ")

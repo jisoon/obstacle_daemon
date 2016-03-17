@@ -19,7 +19,7 @@
         <mapping class="com.neonex.model.EqStatus"/>
         <mapping class="com.neonex.model.Event"/>
         <mapping class="com.neonex.model.Account"/>
-        <mapping class="com.neonex.model.CompModelEvent"/>
+        <mapping class="com.neonex.model.ThresHoldInfo"/>
         <mapping class="com.neonex.model.EqModel"/>
         <mapping class="com.neonex.model.EqInfo"/>
         <mapping class="com.neonex.model.EqCpu"/>

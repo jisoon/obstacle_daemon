@@ -11,7 +11,7 @@ import com.google.common.collect.Collections2;
 import com.neonex.detector.CpuEventDetector;
 import com.neonex.detector.DisconnectEvenDetector;
 import com.neonex.message.StartMsg;
-import com.neonex.model.CompModelEvent;
+import com.neonex.model.ThresHoldInfo;
 import com.neonex.model.EqStatus;
 import com.neonex.utils.HibernateUtils;
 import com.neonex.detector.MemoryEvenDetector;
@@ -30,12 +30,12 @@ import java.util.*;
 @Slf4j
 @SuppressWarnings("JpaQlInspection")
 public class DeviceActor extends UntypedActor {
-    private ActorRef cpuWatcher;
+    private ActorRef cpuDetector;
     private ActorRef memWatcher;
     private ActorRef disconnectWatcher;
 
     public DeviceActor() {
-        cpuWatcher = context().actorOf(Props.create(CpuEventDetector.class), "cpuWatcher");
+        cpuDetector = context().actorOf(Props.create(CpuEventDetector.class), "cpuDetector");
         memWatcher = context().actorOf(Props.create(MemoryEvenDetector.class), "memWatcher");
         disconnectWatcher = context().actorOf(Props.create(DisconnectEvenDetector.class), "disconnectWatcher");
     }
@@ -51,7 +51,7 @@ public class DeviceActor extends UntypedActor {
             Collection<String> connectionEqIds = convertEqIdCollection(filterConnectionDevice(devices));
             Collection<String> disconnectionEqIds = convertEqIdCollection(filterDisconnectionDevice(devices));
 
-            cpuWatcher.tell(new StartMsg(connectionEqIds), getSelf());
+            cpuDetector.tell(new StartMsg(connectionEqIds), getSelf());
             memWatcher.tell(new StartMsg(connectionEqIds), getSelf());
             disconnectWatcher.tell(new StartMsg(disconnectionEqIds), getSelf());
         } else {
@@ -151,11 +151,11 @@ public class DeviceActor extends UntypedActor {
      */
     public Map<String, Object> fetchConnetionThresHold() {
         Session session = HibernateUtils.getSessionFactory().openSession();
-        List<CompModelEvent> thresholdList = session.createCriteria(CompModelEvent.class)
+        List<ThresHoldInfo> thresholdList = session.createCriteria(ThresHoldInfo.class)
                 .add(Restrictions.eq("eventCode", "CON0002"))
                 .list();
         Map<String, Object> threshold = new HashMap<String, Object>();
-        for (CompModelEvent event : thresholdList) {
+        for (ThresHoldInfo event : thresholdList) {
             threshold.put(event.getModelCode(), event.getMaxValue());
         }
         session.close();
